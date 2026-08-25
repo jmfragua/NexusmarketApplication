@@ -13,11 +13,6 @@ Marketplace desarrollado en Java con Spring Boot.
 - Java 17 instalado
 - Maven instalado
 
-## Cómo ejecutar
-
-```bash
-./mvnw spring-boot:run
-```
 
 ## Estructura del proyecto
 
