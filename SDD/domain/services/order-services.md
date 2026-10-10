@@ -142,10 +142,16 @@ Los tres servicios que mueven el pedido siguen exactamente esta secuencia:
 4. **Verificar `order.getStatus().canTransitionTo(destino)`** → si es falso,
    `InvalidOrderTransitionException` (RD-PED-01).
 5. **Invocar la transición del modelo** y persistir.
+6. **Registrar en la bitácora** con `OperationType.ORDER_STATUS_CHANGED`, después de persistir
+   (RD-AUD-01, RD-SRV-07). Ver [audit-services.md](audit-services.md).
 
 Los pasos 3 y 4 son la aplicación de RD-SRV-06: el modelo ya protege la regla lanzando
 `IllegalStateException`, pero el servicio la verifica antes para lanzar una excepción de dominio
 específica y trazable.
+
+El paso 6 aplica a las tres transiciones (`ConfirmPaymentService`, `DispatchOrderService`,
+`CompleteDeliveryService`) porque el ciclo del pedido es el proceso central del sistema y su avance
+es lo que más valor tiene auditar. `ConsultOrderService` no registra nada: es de solo lectura.
 
 ---
 

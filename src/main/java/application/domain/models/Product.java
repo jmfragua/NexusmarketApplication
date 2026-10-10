@@ -36,6 +36,27 @@ public abstract class Product extends DomainEntity<ProductId> {
     }
 
     /**
+     * Restores a product that already existed, with the state and variants it had been persisted in
+     * (RD-ALC-04).
+     *
+     * <p>The variants bypass {@link #addVariant} on purpose: that operation guards a discontinued
+     * product against receiving <em>new</em> variants (RD-CAT-04), whereas this constructor is
+     * restoring the ones it already had.</p>
+     */
+    protected Product(ProductId identifier,
+                      SellerId sellerId,
+                      ProductType productType,
+                      ProductStatus status,
+                      List<ProductVariant> variants) {
+        super(identifier);
+        this.sellerId = Objects.requireNonNull(sellerId, "owning seller is mandatory");
+        this.productType = Objects.requireNonNull(productType, "product type is mandatory");
+        this.status = Objects.requireNonNull(status, "status is mandatory");
+        Objects.requireNonNull(variants, "the variants of the product are mandatory");
+        this.variants.addAll(variants);
+    }
+
+    /**
      * @return the differences declared for this product, as an unmodifiable view.
      */
     public List<ProductVariant> getVariants() {

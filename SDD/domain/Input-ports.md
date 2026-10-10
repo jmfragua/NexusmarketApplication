@@ -47,6 +47,12 @@ y es el que las validaciones de rol y de pertenencia utilizan para hacer cumplir
 y son incorporados por el administrador junto con su primera bodega (RD-ROL-05). Esa operación vive
 únicamente en `AdministratorPort`.
 
+### 2.4 El carrito nace con el comprador
+
+`registerBuyer` recibe un `CartId` además del comprador: el alta crea también su carrito activo
+(RD-PED-04). Sin él, el comprador no tendría carrito que consultar y el flujo de compra sería
+inalcanzable. Ver [user-services.md](services/user-services.md).
+
 ---
 
 ## 3. Definición de los puertos
@@ -58,7 +64,7 @@ Operaciones que no requieren autenticación previa.
 ```java
 public interface PublicAccessPort {
     User<?> login(EmailAddress email);
-    Buyer registerBuyer(Buyer buyer);
+    Buyer registerBuyer(Buyer buyer, CartId cartId);
     List<Product> consultPublicCatalog();
     Product consultPublishedProduct(ProductId productId);
 }
@@ -67,7 +73,7 @@ public interface PublicAccessPort {
 | Método | Reglas aplicadas | Servicios de dominio |
 |---|---|---|
 | `login` | RG-01, RD-ROL-01, RD-ALC-01 | `LoginService` |
-| `registerBuyer` | RD-ID-03, RD-ID-04, RD-VO-09 | `RegisterBuyerService` |
+| `registerBuyer` | RD-ID-03, RD-ID-04, RD-VO-09, RD-PED-04 | `RegisterBuyerService` |
 | `consultPublicCatalog` | RD-CAT-03, RD-CAT-05 | `ConsultCatalogService` |
 | `consultPublishedProduct` | RD-CAT-03 | `ConsultCatalogService` |
 

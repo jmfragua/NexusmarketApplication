@@ -499,13 +499,22 @@ servicio no necesita verificarlo: el objeto de valor lo hace imposible.
    absoluto.
 2. Genera un movimiento `ADJUSTMENT` por esa diferencia.
 3. Reemplaza el disponible por el valor corregido.
+4. **Registra en la bitácora** con `OperationType.INVENTORY_ADJUSTED`, después de persistir
+   (RD-AUD-01, RD-SRV-07). Ver [audit-services.md](audit-services.md).
+
+Es el único servicio de inventario auditado, porque es el único que altera existencias por decisión
+manual del operador y no como consecuencia de un movimiento de negocio (venta, reserva, devolución),
+que ya quedan trazados por su propio `InventoryMovement`.
 
 ## Decisión de modelado: el motivo del ajuste
 
 La especificación funcional nombra esta operación con un motivo (`adjust(quantity, reason)`), pero
 el modelo de `InventoryMovement` **no declara ningún atributo capaz de almacenarlo**. No se añade un
-campo no contemplado por la especificación (RD-ALC-03), así que el motivo queda fuera del dominio y
-corresponderá al registro de auditoría cuando se implemente.
+campo no contemplado por la especificación (RD-ALC-03).
+
+Ese motivo encuentra ahora su lugar en el campo `details` de la bitácora, que recoge la descripción
+legible del ajuste (`"available quantity adjusted to N"`). El movimiento de inventario sigue sin
+almacenarlo, fiel a la especificación; la trazabilidad del *porqué* vive en `OperationLog`.
 
 ## Estado resultante
 

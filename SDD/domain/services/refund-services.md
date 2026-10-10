@@ -78,6 +78,13 @@ el límite: nunca puede exceder el total facturado.
 La validación 4 es clave: impide aplicar el reembolso de una devolución sobre la factura de un
 pedido distinto.
 
+## Registro de auditoría
+
+Tras persistir el reembolso, el servicio registra la operación en la bitácora con
+`OperationType.REFUND_ISSUED` (RD-AUD-01, RD-SRV-07; ver [audit-services.md](audit-services.md)).
+Es la única salida de dinero del sistema, así que la bitácora conserva quién la autorizó, el monto y
+la devolución que la originó.
+
 ## Validación de moneda
 
 `Money.isGreaterThan` sólo compara importes de la **misma moneda** y lanza `IllegalArgumentException`

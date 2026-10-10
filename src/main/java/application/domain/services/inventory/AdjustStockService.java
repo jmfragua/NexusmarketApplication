@@ -5,8 +5,10 @@ import application.domain.models.InventoryMovement;
 import application.domain.models.User;
 import application.domain.ports.out.InventoryItemRepositoryPort;
 import application.domain.ports.out.InventoryMovementRepositoryPort;
+import application.domain.services.audit.RegisterOperationLogService;
 import application.domain.services.authorization.ValidateRoleAuthorizationService;
 import application.domain.valuesObjects.InventoryMovementId;
+import application.domain.valuesObjects.OperationType;
 import application.domain.valuesObjects.Quantity;
 import application.domain.valuesObjects.UserRole;
 import java.util.Objects;
@@ -27,15 +29,20 @@ public class AdjustStockService {
 
     private final ValidateRoleAuthorizationService validateRoleAuthorizationService;
 
+    private final RegisterOperationLogService registerOperationLogService;
+
     public AdjustStockService(InventoryItemRepositoryPort inventoryItemRepositoryPort,
                               InventoryMovementRepositoryPort inventoryMovementRepositoryPort,
-                              ValidateRoleAuthorizationService validateRoleAuthorizationService) {
+                              ValidateRoleAuthorizationService validateRoleAuthorizationService,
+                              RegisterOperationLogService registerOperationLogService) {
         this.inventoryItemRepositoryPort = Objects.requireNonNull(inventoryItemRepositoryPort,
                 "the inventory repository is mandatory");
         this.inventoryMovementRepositoryPort = Objects.requireNonNull(inventoryMovementRepositoryPort,
                 "the movement repository is mandatory");
         this.validateRoleAuthorizationService = Objects.requireNonNull(validateRoleAuthorizationService,
                 "the role validation is mandatory");
+        this.registerOperationLogService = Objects.requireNonNull(registerOperationLogService,
+                "the operation log registration is mandatory");
     }
 
     /**
@@ -50,6 +57,9 @@ public class AdjustStockService {
         Objects.requireNonNull(inventoryItem, "the stock record is mandatory");
         InventoryMovement movement = inventoryItem.adjust(newAvailableQuantity, movementId);
         inventoryItemRepositoryPort.save(inventoryItem);
-        return inventoryMovementRepositoryPort.save(movement);
+        InventoryMovement savedMovement = inventoryMovementRepositoryPort.save(movement);
+        registerOperationLogService.register(actor, OperationType.INVENTORY_ADJUSTED, inventoryItem,
+                "available quantity adjusted to " + newAvailableQuantity);
+        return savedMovement;
     }
 }

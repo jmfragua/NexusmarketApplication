@@ -96,6 +96,8 @@ Las validaciones 5-7 son la defensa del modelo, deliberadamente redundante con 1
 1. Valida rol y unicidad.
 2. `Seller.register(...)` construye el vendedor tras revalidar sus precondiciones.
 3. Persiste **la bodega primero**, luego el vendedor.
+4. Registra la operación en la bitácora con `OperationType.SELLER_REGISTERED`, **después** de
+   persistir (RD-AUD-01, RD-SRV-07). Ver [audit-services.md](audit-services.md).
 
 ## Salida
 

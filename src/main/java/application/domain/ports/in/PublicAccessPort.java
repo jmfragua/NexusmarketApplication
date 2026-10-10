@@ -3,6 +3,7 @@ package application.domain.ports.in;
 import application.domain.models.Buyer;
 import application.domain.models.Product;
 import application.domain.models.User;
+import application.domain.valuesObjects.CartId;
 import application.domain.valuesObjects.EmailAddress;
 import application.domain.valuesObjects.ProductId;
 import java.util.List;
@@ -24,10 +25,10 @@ public interface PublicAccessPort {
     User<?> login(EmailAddress email);
 
     /**
-     * Incorporates a buyer to the platform, keeping the email address and the identity document
-     * unique (RD-ID-03, RD-ID-04).
+     * Incorporates a buyer to the platform together with their active cart, keeping the email
+     * address and the identity document unique (RD-ID-03, RD-ID-04, RD-PED-04).
      */
-    Buyer registerBuyer(Buyer buyer);
+    Buyer registerBuyer(Buyer buyer, CartId cartId);
 
     /**
      * @return the products visible in the public catalogue.

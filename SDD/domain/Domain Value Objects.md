@@ -45,7 +45,8 @@ ValueObject  (abstracta — inmutable, comparación por valor)
 │   ├── InvoiceId
 │   ├── ShipmentId
 │   ├── ProductReturnId
-│   └── RefundId
+│   ├── RefundId
+│   └── OperationLogId
 │
 ├── FullName
 ├── EmailAddress
@@ -64,7 +65,8 @@ ValueObject  (abstracta — inmutable, comparación por valor)
     ├── ProductStatus
     ├── StockCondition
     ├── InventoryMovementType
-    └── OrderStatus
+    ├── OrderStatus
+    └── OperationType
 ```
 
 ---
@@ -504,6 +506,30 @@ del sistema: representa el avance del compromiso comercial formal.
 
 **Reglas.** El ciclo es secuencial: no se admiten saltos ni retrocesos. `DELIVERED` es terminal; un
 pedido finalizado no podrá ser modificado bajo ninguna circunstancia.
+
+---
+
+### 4.10 OperationType
+
+**Descripción.** Categoría de una operación registrada en la bitácora de auditoría (RD-AUD-01).
+
+**Hereda de.** `Enumeration`
+
+| Valor | Descripción |
+|---|---|
+| `SELLER_REGISTERED` | Incorporación de un vendedor junto con su primera bodega. |
+| `ORDER_STATUS_CHANGED` | Un pedido avanzó al siguiente estado de su ciclo. |
+| `INVENTORY_ADJUSTED` | Se corrigió la existencia disponible registrada de un producto. |
+| `REFUND_ISSUED` | Se emitió un reembolso sobre la factura de una devolución. |
+
+**Reglas.** Catálogo cerrado y deliberadamente mínimo: cada valor corresponde a un punto de
+invocación concreto de `RegisterOperationLogService`. Ampliarlo es una decisión consciente ligada a
+un nuevo punto de invocación, nunca una cadena libre (RD-VO-10, RD-VO-11).
+
+**Nota sobre `OperationLogId`.** A diferencia del resto de especializaciones de `Identifier`, expone
+además `generate()`, que produce un UUID. Es la única excepción a RD-POUT-04 (el invocador aporta
+los identificadores), justificada en RD-AUD-02: identifica un hecho técnico que ningún caso de uso
+referencia por identificador.
 
 ---
 

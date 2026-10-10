@@ -8,10 +8,12 @@ import application.domain.models.User;
 import application.domain.ports.out.SellerRepositoryPort;
 import application.domain.ports.out.UserRepositoryPort;
 import application.domain.ports.out.WarehouseRepositoryPort;
+import application.domain.services.audit.RegisterOperationLogService;
 import application.domain.services.authorization.ValidateRoleAuthorizationService;
 import application.domain.valuesObjects.EmailAddress;
 import application.domain.valuesObjects.FullName;
 import application.domain.valuesObjects.IdentityDocument;
+import application.domain.valuesObjects.OperationType;
 import application.domain.valuesObjects.SellerId;
 import application.domain.valuesObjects.UserRole;
 import application.domain.valuesObjects.UserStatus;
@@ -37,16 +39,21 @@ public class RegisterSellerService {
 
     private final ValidateRoleAuthorizationService validateRoleAuthorizationService;
 
+    private final RegisterOperationLogService registerOperationLogService;
+
     public RegisterSellerService(SellerRepositoryPort sellerRepositoryPort,
                                  WarehouseRepositoryPort warehouseRepositoryPort,
                                  UserRepositoryPort userRepositoryPort,
-                                 ValidateRoleAuthorizationService validateRoleAuthorizationService) {
+                                 ValidateRoleAuthorizationService validateRoleAuthorizationService,
+                                 RegisterOperationLogService registerOperationLogService) {
         this.sellerRepositoryPort = Objects.requireNonNull(sellerRepositoryPort, "the seller repository is mandatory");
         this.warehouseRepositoryPort = Objects.requireNonNull(warehouseRepositoryPort,
                 "the warehouse repository is mandatory");
         this.userRepositoryPort = Objects.requireNonNull(userRepositoryPort, "the user repository is mandatory");
         this.validateRoleAuthorizationService = Objects.requireNonNull(validateRoleAuthorizationService,
                 "the role validation is mandatory");
+        this.registerOperationLogService = Objects.requireNonNull(registerOperationLogService,
+                "the operation log registration is mandatory");
     }
 
     /**
@@ -72,6 +79,9 @@ public class RegisterSellerService {
         }
         Seller seller = Seller.register(sellerId, fullName, email, identityDocument, status, firstWarehouse, actor);
         warehouseRepositoryPort.save(firstWarehouse);
-        return sellerRepositoryPort.save(seller);
+        Seller registeredSeller = sellerRepositoryPort.save(seller);
+        registerOperationLogService.register(actor, OperationType.SELLER_REGISTERED, registeredSeller,
+                "seller incorporated with first warehouse " + firstWarehouse.getIdentifier());
+        return registeredSeller;
     }
 }

@@ -56,6 +56,21 @@ public class Seller extends User<SellerId> {
     }
 
     /**
+     * Restores a seller that already existed, with the state it had been persisted in (RD-ALC-04).
+     *
+     * <p>{@link #register} exists to protect the incorporation rules (RD-ROL-05): a seller is
+     * created by an administrator, together with their first warehouse. Those rules apply to a brand
+     * new seller, not to one being reloaded from storage, which already satisfied them.</p>
+     */
+    public static Seller reconstruct(SellerId identifier,
+                                     FullName fullName,
+                                     EmailAddress email,
+                                     IdentityDocument identityDocument,
+                                     UserStatus status) {
+        return new Seller(identifier, fullName, email, identityDocument, status);
+    }
+
+    /**
      * Registers a product in the own catalogue of this seller.
      *
      * @throws IllegalStateException when the product was registered under another seller.

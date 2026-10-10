@@ -37,12 +37,15 @@ Ubicación en el código: `src/main/java/application/domain/services/`.
 - **RD-SRV-06.** Cuando una transición del modelo puede fallar, el servicio la comprueba **antes**
   de invocarla (`isModifiable()`, `canTransitionTo()`, `canReserve()`) para lanzar la excepción de
   dominio correspondiente en lugar de dejar escapar una excepción genérica del modelo.
+- **RD-SRV-07.** Los servicios que registran bitácora (RD-AUD-01) invocan
+  `RegisterOperationLogService` **después** de su propia persistencia, nunca antes: si el `save`
+  falla, no debe quedar una entrada describiendo una operación que no ocurrió.
 
 ---
 
 ## 3. Áreas de servicio
 
-Los 48 servicios se agrupan en 13 áreas, una subcarpeta por área:
+Los 49 servicios se agrupan en 14 áreas, una subcarpeta por área:
 
 | Área | Servicios | Documento | Responsabilidad |
 |---|:---:|---|---|
@@ -59,6 +62,7 @@ Los 48 servicios se agrupan en 13 áreas, una subcarpeta por área:
 | `returns/` | 2 | [return-services.md](services/return-services.md) | Devoluciones de posventa |
 | `refund/` | 2 | [refund-services.md](services/refund-services.md) | Reembolsos derivados de devoluciones |
 | `reporting/` | 2 | [reporting-services.md](services/reporting-services.md) | Consultas consolidadas de solo lectura (OBJ-12) |
+| `audit/` | 1 | [audit-services.md](services/audit-services.md) | Bitácora inmutable de operaciones (RD-AUD-01) |
 
 > El paquete Java del área de devoluciones es `returns` porque `return` es una palabra reservada
 > del lenguaje.
@@ -117,6 +121,7 @@ Los 48 servicios se agrupan en 13 áreas, una subcarpeta por área:
 | 46 | `ConsultRefundService` | refund | `consult` / `consultByReturn` / `consultAll` |
 | 47 | `ConsultSalesReportService` | reporting | `consultCompletedOrders` / `consultInvoicedTotal` |
 | 48 | `ConsultInventoryReportService` | reporting | `consultStockByWarehouse` / `consultDamagedStock` |
+| 49 | `RegisterOperationLogService` | audit | `register(actor, operationType, affectedEntity, details)` |
 
 ---
 

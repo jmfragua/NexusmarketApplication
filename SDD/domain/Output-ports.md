@@ -16,7 +16,7 @@ ni de almacenamiento de la información.
 ## 2. Principios generales
 
 - **RD-POUT-01.** Un puerto de salida por agregado del dominio. No existen repositorios genéricos ni
-  compartidos entre agregados no relacionados.
+  compartidos entre agregados no relacionados. Son 13: doce de negocio y uno de auditoría.
 - **RD-POUT-02.** Las firmas operan sobre modelos de dominio y objetos de valor. Un puerto de salida
   jamás expone entidades ORM, documentos, DTOs ni anotaciones de framework.
 - **RD-POUT-03.** Las consultas de unicidad que no pueden vivir dentro del objeto de valor
@@ -45,6 +45,7 @@ ni de almacenamiento de la información.
 | `ShipmentRepositoryPort` | `Shipment` | RD-LOG-01, RD-LOG-02 |
 | `ProductReturnRepositoryPort` | `ProductReturn` | RD-POS-01 |
 | `RefundRepositoryPort` | `Refund` | RD-POS-02 |
+| `OperationLogRepositoryPort` | `OperationLog` | RD-AUD-01, RD-AUD-02 |
 
 ---
 
@@ -203,6 +204,25 @@ public interface RefundRepositoryPort {
     List<Refund> findAll();
 }
 ```
+
+### 4.13 OperationLogRepositoryPort
+
+Único puerto respaldado por una base **no relacional** (MongoDB). La bitácora es append-only, sus
+registros son heterogéneos y no mantienen relaciones con otros agregados, que es exactamente el
+perfil que justifica un almacenamiento documental (RD-AUD-01).
+
+```java
+public interface OperationLogRepositoryPort {
+    OperationLog save(OperationLog operationLog);
+    Optional<OperationLog> findById(OperationLogId operationLogId);
+    List<OperationLog> findByOperationType(OperationType operationType);
+    List<OperationLog> findByActor(Identifier actorId);
+    List<OperationLog> findAll();
+}
+```
+
+No declara operaciones de actualización ni de borrado: un hecho de auditoría no se modifica ni se
+elimina una vez registrado.
 
 ---
 

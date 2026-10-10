@@ -5,7 +5,9 @@ import application.domain.exceptions.OrderNotModifiableException;
 import application.domain.models.Order;
 import application.domain.models.User;
 import application.domain.ports.out.OrderRepositoryPort;
+import application.domain.services.audit.RegisterOperationLogService;
 import application.domain.services.authorization.ValidateRoleAuthorizationService;
+import application.domain.valuesObjects.OperationType;
 import application.domain.valuesObjects.OrderStatus;
 import application.domain.valuesObjects.UserRole;
 import java.util.Objects;
@@ -24,11 +26,16 @@ public class DispatchOrderService {
 
     private final ValidateRoleAuthorizationService validateRoleAuthorizationService;
 
+    private final RegisterOperationLogService registerOperationLogService;
+
     public DispatchOrderService(OrderRepositoryPort orderRepositoryPort,
-                                ValidateRoleAuthorizationService validateRoleAuthorizationService) {
+                                ValidateRoleAuthorizationService validateRoleAuthorizationService,
+                                RegisterOperationLogService registerOperationLogService) {
         this.orderRepositoryPort = Objects.requireNonNull(orderRepositoryPort, "the order repository is mandatory");
         this.validateRoleAuthorizationService = Objects.requireNonNull(validateRoleAuthorizationService,
                 "the role validation is mandatory");
+        this.registerOperationLogService = Objects.requireNonNull(registerOperationLogService,
+                "the operation log registration is mandatory");
     }
 
     /**
@@ -45,6 +52,9 @@ public class DispatchOrderService {
             throw new InvalidOrderTransitionException(order.getIdentifier(), order.getStatus(), OrderStatus.DISPATCHED);
         }
         order.dispatch();
-        return orderRepositoryPort.save(order);
+        Order dispatchedOrder = orderRepositoryPort.save(order);
+        registerOperationLogService.register(actor, OperationType.ORDER_STATUS_CHANGED, dispatchedOrder,
+                "order moved to " + OrderStatus.DISPATCHED);
+        return dispatchedOrder;
     }
 }

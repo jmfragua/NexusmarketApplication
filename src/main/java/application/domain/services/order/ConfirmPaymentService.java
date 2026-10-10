@@ -5,8 +5,10 @@ import application.domain.exceptions.OrderNotModifiableException;
 import application.domain.models.Buyer;
 import application.domain.models.Order;
 import application.domain.ports.out.OrderRepositoryPort;
+import application.domain.services.audit.RegisterOperationLogService;
 import application.domain.services.authorization.ValidateBuyerOwnershipService;
 import application.domain.services.authorization.ValidateRoleAuthorizationService;
+import application.domain.valuesObjects.OperationType;
 import application.domain.valuesObjects.OrderStatus;
 import application.domain.valuesObjects.UserRole;
 import java.util.Objects;
@@ -27,14 +29,19 @@ public class ConfirmPaymentService {
 
     private final ValidateBuyerOwnershipService validateBuyerOwnershipService;
 
+    private final RegisterOperationLogService registerOperationLogService;
+
     public ConfirmPaymentService(OrderRepositoryPort orderRepositoryPort,
                                  ValidateRoleAuthorizationService validateRoleAuthorizationService,
-                                 ValidateBuyerOwnershipService validateBuyerOwnershipService) {
+                                 ValidateBuyerOwnershipService validateBuyerOwnershipService,
+                                 RegisterOperationLogService registerOperationLogService) {
         this.orderRepositoryPort = Objects.requireNonNull(orderRepositoryPort, "the order repository is mandatory");
         this.validateRoleAuthorizationService = Objects.requireNonNull(validateRoleAuthorizationService,
                 "the role validation is mandatory");
         this.validateBuyerOwnershipService = Objects.requireNonNull(validateBuyerOwnershipService,
                 "the ownership validation is mandatory");
+        this.registerOperationLogService = Objects.requireNonNull(registerOperationLogService,
+                "the operation log registration is mandatory");
     }
 
     /**
@@ -51,6 +58,9 @@ public class ConfirmPaymentService {
             throw new InvalidOrderTransitionException(order.getIdentifier(), order.getStatus(), OrderStatus.PAID);
         }
         order.confirmPayment();
-        return orderRepositoryPort.save(order);
+        Order paidOrder = orderRepositoryPort.save(order);
+        registerOperationLogService.register(buyer, OperationType.ORDER_STATUS_CHANGED, paidOrder,
+                "order moved to " + OrderStatus.PAID);
+        return paidOrder;
     }
 }

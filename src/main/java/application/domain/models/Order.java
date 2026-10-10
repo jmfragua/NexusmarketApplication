@@ -51,6 +51,38 @@ public class Order extends DomainEntity<OrderId> {
         this.status = OrderStatus.PENDING_PAYMENT;
     }
 
+    private Order(OrderId identifier,
+                  BuyerId buyerId,
+                  Address deliveryAddress,
+                  List<OrderLine> lines,
+                  OrderStatus status) {
+        super(identifier);
+        this.buyerId = Objects.requireNonNull(buyerId, "buyer is mandatory");
+        this.deliveryAddress = Objects.requireNonNull(deliveryAddress, "delivery address is mandatory");
+        Objects.requireNonNull(lines, "the lines of the order are mandatory");
+        if (lines.isEmpty()) {
+            throw new IllegalArgumentException("an order holds at least one line");
+        }
+        lines.forEach(this::addLine);
+        this.totalAmount = calculateTotal();
+        this.status = Objects.requireNonNull(status, "status is mandatory");
+    }
+
+    /**
+     * Restores an order that already existed, with the state it had been persisted in (RD-ALC-04).
+     *
+     * <p>Creation-time rules apply only to brand new orders: an order being reloaded already went
+     * through them when it was first confirmed, so this factory restores its status verbatim
+     * instead of forcing {@code PENDING_PAYMENT}.</p>
+     */
+    public static Order reconstruct(OrderId identifier,
+                                    BuyerId buyerId,
+                                    Address deliveryAddress,
+                                    List<OrderLine> lines,
+                                    OrderStatus status) {
+        return new Order(identifier, buyerId, deliveryAddress, lines, status);
+    }
+
     /**
      * @return the lines of the order, as an unmodifiable view.
      */

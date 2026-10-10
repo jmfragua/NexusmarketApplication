@@ -39,7 +39,7 @@ probarse sin saber que existen Spring, MySQL o MongoDB.
    │                                                                            │
    │   domain/models          Entidades con identidad y comportamiento          │
    │   domain/valuesObjects   Objetos de valor inmutables y enumeraciones        │
-   │   domain/services        48 servicios, uno por caso de uso                 │
+   │   domain/services        49 servicios, uno por caso de uso                 │
    │   domain/exceptions      Una excepción por regla de negocio                │
    │                                                                            │
    │              Cero dependencias de framework. Java puro.                    │
@@ -47,7 +47,7 @@ probarse sin saber que existen Spring, MySQL o MongoDB.
                                          │ depende de
                     ┌────────────────────▼─────────────────────┐
                     │           domain/ports/out               │
-                    │   12 interfaces de repositorio            │
+                    │   13 interfaces de repositorio            │
                     └────────────────────┬─────────────────────┘
                                          │ implementa
                     ┌────────────────────▼─────────────────────┐
@@ -68,27 +68,35 @@ que se llama *inversión de dependencias*.
 ```
 src/main/java/application/
 ├── NexusmarketApplication.java
-└── domain/
-    ├── models/              22 entidades
-    ├── valuesObjects/       35 objetos de valor y enumeraciones
-    ├── exceptions/          20 excepciones de dominio
-    ├── ports/
-    │   ├── in/               6 puertos de entrada (uno por rol)
-    │   └── out/             12 puertos de salida (uno por agregado)
-    └── services/            48 servicios de dominio
-        ├── authorization/   4
-        ├── user/            5
-        ├── seller/          2
-        ├── warehouse/       2
-        ├── catalog/         7
-        ├── inventory/       8
-        ├── cart/            5
-        ├── order/           4
-        ├── invoice/         2
-        ├── shipment/        3
-        ├── returns/         2
-        ├── refund/          2
-        └── reporting/       2
+├── domain/
+│   ├── models/              23 archivos (DomainEntity + 22 entidades)
+│   ├── valuesObjects/       37 objetos de valor y enumeraciones
+│   ├── exceptions/          20 excepciones de dominio
+│   ├── ports/
+│   │   ├── in/               6 puertos de entrada (uno por rol)
+│   │   └── out/             13 puertos de salida (uno por agregado)
+│   └── services/            49 servicios de dominio
+│       ├── authorization/   4      ├── order/        4
+│       ├── user/            5      ├── invoice/      2
+│       ├── seller/          2      ├── shipment/     3
+│       ├── warehouse/       2      ├── returns/      2
+│       ├── catalog/         7      ├── refund/       2
+│       ├── inventory/       8      ├── reporting/    2
+│       └── cart/            5      └── audit/        1
+├── adapters/
+│   ├── useCases/             6 implementaciones de puertos de entrada
+│   ├── persistence/
+│   │   ├── jpa/             47 (12 adaptadores + 14 entidades + 9 mappers + 11 repos)
+│   │   └── mongodb/          4 (bitácora de auditoría)
+│   └── rest/
+│       ├── controllers/      7
+│       ├── dtos/            36 (18 de entrada + 18 de salida)
+│       ├── mappers/          6
+│       └── exception/        1 GlobalExceptionHandler
+└── infrastructure/
+    ├── config/              14 configuraciones de beans de servicio
+    ├── security/             9 (JWT, credenciales, filtro, ActorResolver)
+    └── seed/                 1 (DatabaseSeeder: primer administrador)
 ```
 
 ---
@@ -131,30 +139,102 @@ infraestructura y no contamina los puertos de salida.
 
 ## 5. Estado de implementación
 
-| Capa | Estado |
-|---|---|
-| `domain/models` | Implementada |
-| `domain/valuesObjects` | Implementada |
-| `domain/exceptions` | Implementada |
-| `domain/ports/in` | Implementada |
-| `domain/ports/out` | Implementada |
-| `domain/services` | Implementada |
-| `adapters/useCases` | Pendiente |
-| `adapters/rest` | Pendiente |
-| `adapters/persistence` | Pendiente |
-| `infrastructure/security` | Pendiente |
-| Pruebas unitarias | Pendientes |
+| Capa | Archivos | Estado | Documento |
+|---|---:|---|---|
+| `domain/models` | 23 | Implementada | [Domain Model.md](../domain/Domain%20Model.md) |
+| `domain/valuesObjects` | 37 | Implementada | [Domain Value Objects.md](../domain/Domain%20Value%20Objects.md) |
+| `domain/exceptions` | 20 | Implementada | [Domain Services.md](../domain/Domain%20Services.md) §5 |
+| `domain/ports/in` | 6 | Implementada | [Input-ports.md](../domain/Input-ports.md) |
+| `domain/ports/out` | 13 | Implementada | [Output-ports.md](../domain/Output-ports.md) |
+| `domain/services` | 49 | Implementada | [Domain Services.md](../domain/Domain%20Services.md) |
+| `adapters/useCases` | 6 | Implementada | [Use-cases-adapters.md](../Adapters/Use-cases-adapters.md) |
+| `adapters/persistence` | 51 | Implementada | [Persistence-adapters.md](../Adapters/Persistence-adapters.md) |
+| `adapters/rest` | 50 | Implementada | [Rest-adapters.md](../Adapters/Rest-adapters.md) · [Api-rest-endpoints.md](../Adapters/Api-rest-endpoints.md) |
+| `infrastructure/config` | 14 | Implementada | §5.1 |
+| `infrastructure/security` | 9 | Implementada | [Security.md](../Infrastructure/Security.md) |
+| `infrastructure/seed` | 1 | Implementada | [Bootstrap.md](../Infrastructure/Bootstrap.md) |
+| Pruebas | 17 archivos / 77 tests | Implementadas | §6 |
+
+**Total:** 280 archivos de producción.
+
+### 5.1 Exposición de los servicios de dominio como beans
+
+Los 49 servicios de dominio son clases Java planas, sin anotación alguna de framework: es
+precisamente lo que mantiene el dominio libre de Spring (RD-SRV-02). Su cableado vive en 14 clases
+`@Configuration` bajo `infrastructure/config`, una por área de servicio, con un `@Bean` por
+servicio.
+
+Spring resuelve el grafo por tipo, así que no hace falta ordenar las configuraciones ni usar
+`@DependsOn`, aunque `AuditServicesConfig` sea consumida por cuatro de las otras.
 
 ---
 
-## 6. Verificación del desacoplamiento
+## 6. Verificación
+
+### 6.1 Desacoplamiento del dominio
 
 El criterio objetivo de que la arquitectura se respeta es que este comando no devuelva ninguna
 línea:
 
 ```bash
-grep -rE "import (org\.springframework|jakarta\.persistence|org\.bson|com\.fasterxml)" \
+grep -rE "import (org\.springframework|jakarta\.persistence|org\.bson|com\.fasterxml|io\.jsonwebtoken)" \
   src/main/java/application/domain/
 ```
 
 Si el dominio importara cualquiera de esos paquetes, la regla de dependencia estaría rota.
+
+### 6.2 Ensamblaje del grafo de dependencias
+
+Que el proyecto compile no prueba que Spring pueda resolver el grafo. `NexusmarketApplicationTests`
+lo verifica explícitamente:
+
+| Verificación | Qué asegura |
+|---|---|
+| El contexto arranca | El cableado completo es resoluble |
+| 49 beans de servicio de dominio | Ninguna configuración olvidó un servicio |
+| 13 puertos de salida resueltos | Cada puerto tiene exactamente un adaptador |
+| 6 puertos de entrada resueltos | Cada rol tiene su caso de uso |
+
+### 6.3 Cobertura de pruebas
+
+| Suite | Tests | Qué cubre |
+|---|---:|---|
+| `InventoryServicesTest` | 17 | RD-INV-02/03/04: saldos negativos, existencias dañadas, movimientos |
+| `OrderServicesTest` | 12 | RD-PED-01/02/05: ciclo secuencial, estado terminal, pertenencia |
+| `CartServicesTest` | 11 | RD-PED-04, RD-CAT-03/05: el carrito no compromete nada |
+| `CatalogServicesTest` | 12 | RD-CAT-01/04/05: propiedad, estado terminal, visibilidad |
+| `AuditAndAfterSalesServicesTest` | 14 | RD-POS-01/02, RD-AUD-01: devoluciones, reembolsos, bitácora |
+| `PersistenceReconstructionTest` | 6 | RD-ALC-04: los cuatro caminos de reconstrucción contra H2 |
+| `JwtProviderTest` | 5 | Emisión y rechazo de tokens |
+
+Las pruebas de dominio usan dobles en memoria escritos a mano
+(`src/test/java/application/domain/support/`) en lugar de un framework de *mocking*: los fakes
+almacenan de verdad lo que reciben, de modo que las aserciones hablan de resultados observables
+—el saldo que cambió, la bitácora que se escribió— y no de qué método se llamó.
+
+### 6.4 Verificación extremo a extremo
+
+Ejercida manualmente contra MySQL 8.4 y MongoDB 7 en contenedor, con el flujo completo: administrador
+sembrado → incorpora vendedor → vendedor registra producto y variante → el catálogo público pasa a
+visible → comprador se registra (con carrito) → añade al carrito → confirma pedido → paga. Las
+transiciones auditadas aparecieron en MongoDB, y las reglas rechazaron correctamente lo que debían
+(descontinuar sin suspender → 409, rol cruzado → 403, producto suspendido al carrito → 409).
+
+Esa prueba descubrió **cuatro defectos que las 77 pruebas automatizadas no detectaban**, porque
+todas construían sus propios agregados y nunca preguntaban de dónde salía el primero:
+
+| Defecto | Corrección |
+|---|---|
+| El comprador no tenía carrito y nada lo creaba: el flujo de compra era inalcanzable | `RegisterBuyerService` crea el carrito activo en el alta |
+| No existía forma de crear el primer administrador | `DatabaseSeeder` ([Bootstrap.md](../Infrastructure/Bootstrap.md)) |
+| Tres de los cinco roles no eran instanciables (`User` es abstracta) | `StaffUser` (RD-ROL-07) |
+| La bitácora se escribía en la base `test` por defecto | `spring.mongodb.uri`, no `spring.data.mongodb.uri` |
+
+### 6.5 Pendiente
+
+- **Automatizar el flujo extremo a extremo.** Hoy está verificado manualmente; debería ser un test
+  de integración para que no vuelva a romperse en silencio.
+- **Test de `JwtAuthenticationFilter`** para el caso central de su diseño: un token válido de un
+  usuario bloqueado después de emitirlo.
+- **Áreas de servicio con cobertura parcial:** `user`, `seller`, `warehouse`, `invoice`, `shipment`,
+  `reporting`.

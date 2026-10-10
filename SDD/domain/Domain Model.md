@@ -36,7 +36,8 @@ DomainEntity  (abstracta — raíz de toda entidad con identidad propia)
 │
 ├── User  (abstracta)
 │   ├── Buyer
-│   └── Seller
+│   ├── Seller
+│   └── StaffUser   (operador logístico, administrador, supervisor — ver §4.3.1)
 │
 ├── Warehouse  (abstracta)
 │   ├── MarketplaceWarehouse
@@ -63,7 +64,9 @@ DomainEntity  (abstracta — raíz de toda entidad con identidad propia)
 │
 ├── ProductReturn
 │
-└── Refund
+├── Refund
+│
+└── OperationLog  (extensión de auditoría — ver §4.22)
 ```
 
 ### Nota sobre los roles
@@ -76,6 +79,12 @@ De ellos, únicamente **Comprador** y **Vendedor** reciben atributos y reglas pr
 especificación (Dominios 2 y 3), por lo que se modelan como especializaciones de `User`. Los roles
 **Operador Logístico**, **Administrador** y **Supervisor** no aportan atributos adicionales al
 dominio: se representan mediante el objeto de valor `UserRole` sobre `User`.
+
+**Consecuencia de implementación.** `User` es abstracta y declara el método abstracto
+`ownsResource`, de modo que esos tres roles no podrían existir como objeto si no hubiera una clase
+concreta que los soporte. Esa clase es `StaffUser` (§4.3.1): no añade ningún atributo —sería
+contradecir lo anterior— y existe únicamente para que los tres participantes restantes sean
+instanciables (RD-ROL-07).
 
 ---
 
@@ -250,6 +259,45 @@ inventarios.
 - `canPurchase(): boolean` — evalúa el `commercialStatus` antes de confirmar un pedido.
 - `placeOrder(cart): Order` — confirma el carrito como pedido.
 - `requestReturn(orderLine): ProductReturn`.
+
+---
+
+### 4.3.1 StaffUser
+
+**Descripción.** Usuario de un rol que no posee especialización propia: Operador Logístico,
+Administrador o Supervisor.
+
+**Hereda de.** `User`
+
+| Atributo | Tipo | Descripción |
+|---|---|---|
+| — | — | No añade ningún atributo a los de `User`. |
+
+**Razón de existir.** La especificación dice que estos tres roles se representan "mediante el
+objeto de valor `UserRole` sobre `User`", y así es: su único rasgo distintivo es el rol. Pero `User`
+es abstracta, así que sin una clase concreta esos tres participantes **no podrían instanciarse**, y
+con ellos quedarían inalcanzables la incorporación de vendedores, toda la logística y los reportes
+administrativos.
+
+`StaffUser` resuelve eso sin inventar atributos: es el soporte concreto mínimo para un rol que no
+necesita más.
+
+**Restricción clave.** La fábrica `StaffUser.of(...)` **rechaza** los roles `BUYER` y `SELLER`.
+Esos tienen su propia especialización con sus propias reglas —un comprador con estado comercial, un
+vendedor que solo el administrador puede incorporar— y construirlos por esta vía las eludiría.
+
+**Operaciones generadas.**
+
+- `of(identifier, fullName, email, identityDocument, role, status): StaffUser` — única vía de
+  construcción; valida que el rol no tenga especialización propia.
+- `ownsResource(resource): boolean` — siempre falso. Estos roles no poseen recursos: una bodega
+  pertenece a un vendedor, un pedido a un comprador. Su alcance lo decide el rol a través de
+  `ValidateRoleAuthorizationService`, no la pertenencia (RD-ROL-06).
+
+**Nueva regla de diseño.**
+
+- **RD-ROL-07.** Los roles sin especialización propia se materializan en `StaffUser`, que no añade
+  atributos y prohíbe los roles que sí la tienen.
 
 ---
 
@@ -754,7 +802,52 @@ el reembolso.
 
 ---
 
-### 4.22 Consulta de reportes administrativos
+### 4.22 OperationLog
+
+**Descripción.** Registro inmutable de una operación relevante del negocio, conservado para
+trazabilidad y auditoría.
+
+**Hereda de.** `DomainEntity`
+
+| Atributo | Tipo | Descripción |
+|---|---|---|
+| `identifier` | `OperationLogId` | Identifica de forma única la entrada. Autogenerado. |
+| `operationType` | `OperationType` | Categoría de la operación registrada. |
+| `actorId` | `Identifier` | Usuario que ejecutó la operación. |
+| `actorRole` | `UserRole` | Rol que ese usuario tenía **en el momento** de la operación. |
+| `affectedEntityType` | `String` | Tipo de la entidad afectada. |
+| `affectedEntityId` | `String` | Identificador de la entidad afectada. |
+| `details` | `String` | Descripción corta y legible de qué cambió. |
+| `occurredAt` | `Instant` | Momento exacto de la operación. |
+
+**Origen.** Esta entidad **no proviene de la especificación funcional**, que no menciona auditoría.
+Se incorpora como extensión consciente del modelo para dar soporte al almacenamiento no relacional:
+es el único agregado cuya naturaleza —registros heterogéneos, append-only, sin relaciones— justifica
+una base documental en lugar de una relacional.
+
+**Relaciones.** Ninguna. Referencia al actor y a la entidad afectada **por valor** (identificador y
+tipo como cadenas), nunca por asociación: una bitácora que apuntara a entidades vivas dejaría de ser
+un registro histórico fiel en cuanto esas entidades cambiaran.
+
+**Restricción clave.** Append-only. Todos sus atributos son inmutables; no existe operación de
+modificación ni de borrado.
+
+**Operaciones generadas.**
+
+- `register(identifier, operationType, actor, affectedEntity, details, occurredAt): OperationLog` —
+  extrae identificador y rol del actor, y tipo e identificador de la entidad afectada.
+- `reconstruct(...)` — restaura una entrada ya persistida a partir de valores planos (RD-ALC-04).
+
+**Nuevas reglas de diseño.**
+
+- **RD-AUD-01.** Toda incorporación de vendedor, transición de pedido, ajuste de inventario y
+  emisión de reembolso queda registrada como un `OperationLog` inmutable.
+- **RD-AUD-02.** El identificador de una entrada de bitácora es autogenerado, no lo aporta quien
+  invoca el caso de uso: identifica un hecho técnico que ninguna operación de negocio referencia.
+
+---
+
+### 4.23 Consulta de reportes administrativos
 
 El objetivo OBJ-12 —consolidar información administrativa para consulta— y el proceso "Consulta de
 reportes administrativos" **no se modelan como entidad**: no poseen identidad propia ni ciclo de
@@ -1002,3 +1095,13 @@ El ciclo es **secuencial**: no se admiten saltos entre estados ni retrocesos. Un
   almacenamiento de la información.
 - **RD-ALC-03.** El sistema administrará exclusivamente los procesos descritos en la especificación
   funcional. Cualquier concepto ausente de la especificación queda fuera del modelo de dominio.
+  **Excepción documentada:** `OperationLog` (§4.22) se incorpora como extensión consciente para
+  soportar el almacenamiento no relacional exigido por el curso, y queda señalada como tal.
+- **RD-ALC-04.** Los adaptadores de salida reconstruyen los agregados persistidos mediante fábricas
+  `reconstruct(...)` dedicadas, que restauran el estado previo sin volver a ejecutar las validaciones
+  de creación. Esas validaciones protegen el alta de una entidad **nueva** (un pedido nace en
+  `PENDING_PAYMENT`, un producto en `PUBLISHED`, un vendedor exige administrador y primera bodega);
+  aplicarlas a una entidad que se está recargando falsearía su estado o fabricaría historial que
+  nunca ocurrió. Afecta a `Order`, `Seller`, `Product` y sus especializaciones, `InventoryItem` y
+  `OperationLog`. `Cart`, `Shipment`, `Invoice`, `ProductReturn` y `Refund` no la necesitan: su
+  constructor público ya restaura fielmente su estado.

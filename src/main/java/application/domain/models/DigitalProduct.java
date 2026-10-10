@@ -2,8 +2,10 @@ package application.domain.models;
 
 import application.domain.valuesObjects.OrderStatus;
 import application.domain.valuesObjects.ProductId;
+import application.domain.valuesObjects.ProductStatus;
 import application.domain.valuesObjects.ProductType;
 import application.domain.valuesObjects.SellerId;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -14,6 +16,24 @@ public class DigitalProduct extends Product {
 
     public DigitalProduct(ProductId identifier, SellerId sellerId) {
         super(identifier, sellerId, ProductType.DIGITAL);
+    }
+
+    private DigitalProduct(ProductId identifier,
+                           SellerId sellerId,
+                           ProductStatus status,
+                           List<ProductVariant> variants) {
+        super(identifier, sellerId, ProductType.DIGITAL, status, variants);
+    }
+
+    /**
+     * Restores a digital product that already existed, with the state and variants it had been
+     * persisted in (RD-ALC-04).
+     */
+    public static DigitalProduct reconstruct(ProductId identifier,
+                                             SellerId sellerId,
+                                             ProductStatus status,
+                                             List<ProductVariant> variants) {
+        return new DigitalProduct(identifier, sellerId, status, variants);
     }
 
     @Override

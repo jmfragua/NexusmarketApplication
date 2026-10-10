@@ -47,6 +47,42 @@ public class InventoryItem extends DomainEntity<InventoryItemId> {
         this.condition = StockCondition.AVAILABLE;
     }
 
+    private InventoryItem(InventoryItemId identifier,
+                          ProductId productId,
+                          WarehouseId warehouseId,
+                          Quantity availableQuantity,
+                          Quantity reservedQuantity,
+                          StockCondition condition,
+                          List<InventoryMovement> movements) {
+        super(identifier);
+        this.productId = Objects.requireNonNull(productId, "product is mandatory");
+        this.warehouseId = Objects.requireNonNull(warehouseId, "warehouse is mandatory");
+        this.availableQuantity = Objects.requireNonNull(availableQuantity, "available quantity is mandatory");
+        this.reservedQuantity = Objects.requireNonNull(reservedQuantity, "reserved quantity is mandatory");
+        this.condition = Objects.requireNonNull(condition, "condition is mandatory");
+        Objects.requireNonNull(movements, "the movements of the stock record are mandatory");
+        this.movements.addAll(movements);
+    }
+
+    /**
+     * Restores a stock record that already existed, with the balances, condition and traceability it
+     * had been persisted in (RD-ALC-04).
+     *
+     * <p>Balances are restored directly instead of replaying {@code receive}/{@code reserve}: those
+     * operations each produce a new {@link InventoryMovement}, and replaying them would fabricate
+     * duplicated history that never happened, breaking RD-INV-04.</p>
+     */
+    public static InventoryItem reconstruct(InventoryItemId identifier,
+                                            ProductId productId,
+                                            WarehouseId warehouseId,
+                                            Quantity availableQuantity,
+                                            Quantity reservedQuantity,
+                                            StockCondition condition,
+                                            List<InventoryMovement> movements) {
+        return new InventoryItem(identifier, productId, warehouseId, availableQuantity, reservedQuantity,
+                condition, movements);
+    }
+
     /**
      * @return the traceability of the stock, as an unmodifiable view.
      */

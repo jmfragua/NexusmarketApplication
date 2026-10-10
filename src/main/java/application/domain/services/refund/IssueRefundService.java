@@ -6,8 +6,10 @@ import application.domain.models.ProductReturn;
 import application.domain.models.Refund;
 import application.domain.models.User;
 import application.domain.ports.out.RefundRepositoryPort;
+import application.domain.services.audit.RegisterOperationLogService;
 import application.domain.services.authorization.ValidateRoleAuthorizationService;
 import application.domain.valuesObjects.Money;
+import application.domain.valuesObjects.OperationType;
 import application.domain.valuesObjects.RefundId;
 import application.domain.valuesObjects.UserRole;
 import java.util.Objects;
@@ -26,11 +28,16 @@ public class IssueRefundService {
 
     private final ValidateRoleAuthorizationService validateRoleAuthorizationService;
 
+    private final RegisterOperationLogService registerOperationLogService;
+
     public IssueRefundService(RefundRepositoryPort refundRepositoryPort,
-                              ValidateRoleAuthorizationService validateRoleAuthorizationService) {
+                              ValidateRoleAuthorizationService validateRoleAuthorizationService,
+                              RegisterOperationLogService registerOperationLogService) {
         this.refundRepositoryPort = Objects.requireNonNull(refundRepositoryPort, "the refund repository is mandatory");
         this.validateRoleAuthorizationService = Objects.requireNonNull(validateRoleAuthorizationService,
                 "the role validation is mandatory");
+        this.registerOperationLogService = Objects.requireNonNull(registerOperationLogService,
+                "the operation log registration is mandatory");
     }
 
     /**
@@ -49,6 +56,9 @@ public class IssueRefundService {
             throw new RefundExceedsInvoiceException(invoice.getIdentifier(), amount);
         }
         Refund refund = Refund.issueFor(refundId, productReturn, invoice, amount);
-        return refundRepositoryPort.save(refund);
+        Refund issuedRefund = refundRepositoryPort.save(refund);
+        registerOperationLogService.register(actor, OperationType.REFUND_ISSUED, issuedRefund,
+                "refund of " + amount + " issued for return " + productReturn.getIdentifier());
+        return issuedRefund;
     }
 }

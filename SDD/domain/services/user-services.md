@@ -91,7 +91,7 @@ autoregistrarse**: se expone a través de `PublicAccessPort`.
 ## Entrada
 
 ```java
-Buyer register(Buyer buyer)
+Buyer register(Buyer buyer, CartId cartId)
 ```
 
 El comprador llega ya construido y validado por el modelo: `FullName`, `EmailAddress`,
@@ -99,7 +99,7 @@ El comprador llega ya construido y validado por el modelo: `FullName`, `EmailAdd
 
 ## Dependencias
 
-`UserRepositoryPort`
+`UserRepositoryPort`, `CartRepositoryPort`
 
 **No inyecta validación de rol**: es una operación pública, sin actor autenticado previo.
 
@@ -111,7 +111,25 @@ El comprador llega ya construido y validado por el modelo: `FullName`, `EmailAdd
 
 ## Procesamiento
 
-Persiste el comprador con `UserRepositoryPort.save`.
+1. Persiste el comprador con `UserRepositoryPort.save`.
+2. **Crea y persiste su carrito activo** con el identificador recibido.
+
+## Por qué el carrito nace aquí
+
+El modelo establece que un comprador posee **un carrito activo** (relación 1 a 1, RD-PED-04). Si el
+carrito no existiera desde el alta, el comprador no tendría ninguno que consultar ni al que añadir
+productos, y **todo el flujo de compra quedaría inalcanzable**: sin carrito no hay selección, sin
+selección no hay pedido.
+
+Las alternativas se descartaron por lo siguiente:
+
+| Alternativa | Por qué no |
+|---|---|
+| Crearlo perezosamente al consultarlo | Escondería una escritura dentro de una operación de consulta |
+| Endpoint explícito de creación | Obligaría al cliente a un paso que el modelo ya da por hecho |
+
+El `cartId` lo aporta quien invoca el caso de uso, igual que el resto de identificadores de
+entidades nuevas (RD-POUT-04); el adaptador REST lo genera al registrar.
 
 ## Excepciones
 
