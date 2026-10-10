@@ -9,7 +9,7 @@ hexagonal architecture (Ports & Adapters) with a DDD core.
 
 All layers are implemented: domain (entities, value objects, exceptions, ports, services),
 persistence adapters (JPA for 12 aggregates, MongoDB for the audit log), REST adapters, use cases,
-JWT security and the bootstrap seeder — 280 production files.
+JWT security and the bootstrap seeder — 283 production files, covered by 143 tests.
 
 Run it with `docker compose up` (MySQL 8.4 + MongoDB 7 + the app), or point the app at those
 containers locally. Bootstrapping needs `SEED_ADMIN_PASSWORD`: without it no administrator is
@@ -77,7 +77,7 @@ application.domain.services        49 services, one per use case, in 14 area sub
 application.domain.ports.in        6 interfaces, one per user role (PublicAccess, Buyer, Seller,
                                     LogisticOperator, Administrator, Supervisor)
 application.domain.ports.out       13 interfaces, one per aggregate repository
-application.domain.exceptions      20 exceptions, one per business rule, all extending
+application.domain.exceptions      21 exceptions, one per business rule, all extending
                                     DomainException
 ```
 
@@ -99,6 +99,12 @@ DomainEntity<ID extends Identifier>  (abstract)
 **`StaffUser` (RD-ROL-07).** `User` is abstract, so the three roles with no specialization of their
 own — logistics operator, administrator, supervisor — need a concrete class to exist at all. It adds
 no attribute and its factory refuses `BUYER` and `SELLER`, which have their own creation rules.
+
+**Role changes are bounded by that same line (RD-ROL-08).** `User.changeRole` only accepts
+reassignment among the three roles without a specialization, or to the same role; anything crossing
+into or out of `BUYER`/`SELLER` throws `InvalidRoleChangeException`. The reason is the persistence
+discriminator: it, not the `role` column, decides which entity is rebuilt on reload, so a buyer
+"promoted" to administrator would come back a buyer. Accepting the change would make the column lie.
 
 **Reconstruction factories (RD-ALC-04).** `Order`, `Seller`, `Product`/`PhysicalProduct`/
 `DigitalProduct`, `InventoryItem` and `OperationLog` expose a `reconstruct(...)` static factory used
@@ -145,3 +151,19 @@ Key conventions enforced throughout, and expected in any new code:
   `domain/exceptions/` type instead of leaking a generic one, then calls the model and persists.
 - **Nothing from a framework may be imported under `domain/`.** Verify with:
   `grep -rE "import (org\.springframework|jakarta\.persistence|org\.bson|com\.fasterxml)" src/main/java/application/domain/`
+
+### Adapter-layer invariants
+
+Two rules that are easy to break by accident when adding an endpoint, both documented in
+[SDD/Adapters/Rest-adapters.md](SDD/Adapters/Rest-adapters.md):
+
+- **A controller injects input ports only** (RD-REST-02) — never an output port and never a domain
+  service. HTTP carries identifiers, so every input port exposes the resolution of the entities it
+  operates on, with role and ownership validated while loading (RD-PIN-06). If the lookup you need
+  isn't there, add it to the port, don't reach for a repository. Verify with:
+  `grep -rn "RepositoryPort\|import application.domain.services" src/main/java/application/adapters/rest/`
+  (`CredentialService` is the one allowed exception: it is security infrastructure, not domain.)
+- **Every `GET` that returns a collection is paged** (RD-REST-06) — it returns
+  `PageResponse<T>` via `PageResponse.of(list, page, size)` and takes
+  `@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size`.
+  Pagination lives only in the REST adapter; output ports still return whole collections.

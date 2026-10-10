@@ -11,7 +11,7 @@ entrada del rol correspondiente, y traduce el resultado de vuelta a JSON.
 adapters/rest/
 ├── controllers/        7 controladores
 ├── dtos/requests/     18 DTOs de entrada
-├── dtos/responses/    18 DTOs de salida
+├── dtos/responses/    19 DTOs de salida (18 de recurso + PageResponse)
 ├── mappers/            6 mappers estáticos
 └── exception/          GlobalExceptionHandler
 ```
@@ -23,8 +23,10 @@ adapters/rest/
 - **RD-REST-01.** Un controlador por **rol**, no por entidad, en correspondencia uno a uno con los
   puertos de entrada. `AuthRestController` y `CatalogRestController` son la excepción: cubren el
   puerto público, que no corresponde a ningún rol autenticado.
-- **RD-REST-02.** Los controladores inyectan **puertos de entrada**, nunca servicios de dominio ni
-  casos de uso concretos. (Una excepción documentada en §5.)
+- **RD-REST-02.** Los controladores inyectan **puertos de entrada**, nunca servicios de dominio,
+  casos de uso concretos ni puertos de salida. Sin excepciones: la única que hubo quedó saldada
+  (§4.2). `AdministratorRestController` inyecta además `CredentialService`, que no es dominio sino
+  infraestructura de seguridad y no tiene puerto que implementar (ver `SDD/Infrastructure/Security.md`).
 - **RD-REST-03.** Los controladores **no capturan excepciones**. Las dejan subir hasta
   `GlobalExceptionHandler`, que concentra en una sola tabla la traducción regla → código HTTP.
 - **RD-REST-04.** Los DTOs son `record` inmutables con validación `jakarta.validation`. Esa
@@ -32,6 +34,8 @@ adapters/rest/
   valor y los servicios de dominio (RD-VO-07).
 - **RD-REST-05.** El actor autenticado llega como `@AuthenticationPrincipal DomainUserPrincipal`,
   que transporta el `User` de dominio real, no un principal del framework.
+- **RD-REST-06.** Todo endpoint de consulta que devuelva una colección responde paginado, con el
+  envoltorio `PageResponse<T>` (§5). La paginación no baja de esta capa.
 
 ---
 
@@ -71,29 +75,58 @@ return ResponseEntity.ok(OrderRestMapper.toResponse(buyerPort.confirmPayment(buy
 Así la validación de pertenencia corre **al cargar**: un comprador que pida el pedido de otro es
 rechazado mientras lo busca, no después (RD-PED-05).
 
-### 4.2 Resolución mediante puerto de salida (documentada)
+### 4.2 Deuda saldada: ningún controlador inyecta puertos de salida
 
-`SellerRestController`, `LogisticOperatorRestController` y `AdministratorRestController` inyectan
-puertos de salida **solo para resolver** la entidad. Los puertos de entrada no exponen un
-"buscar por identificador" para cada caso, y ampliarlos habría modificado contratos ya
-especificados.
+Durante una etapa anterior, `SellerRestController`, `LogisticOperatorRestController` y
+`AdministratorRestController` inyectaban puertos de salida solo para resolver la entidad desde el
+identificador de la URL. No abría un agujero de seguridad —cargar no decide nada, y el servicio de
+dominio revalidaba rol y pertenencia después—, pero rompía RD-REST-02: el adaptador conocía la capa
+de persistencia sin necesitarla.
 
-**Por qué no abre un agujero de seguridad:** cargar no decide nada. La operación posterior pasa por
-el puerto de entrada, y el servicio de dominio revalida rol y pertenencia antes de tocar el modelo.
-Un vendedor que resuelva el producto de otro recibe igualmente `ProductNotOwnedException` de
-`ValidateSellerOwnershipService`.
+La deuda se cerró ampliando los puertos de entrada con las consultas que faltaban, en lugar de
+dejar que el controlador supliera la carencia:
 
-Queda registrado como deuda consciente: lo correcto a futuro es ampliar los puertos de entrada con
-las consultas que faltan.
+| Puerto | Operaciones añadidas |
+|---|---|
+| `SellerPort` | `consultMyProduct`, `consultStockRecord` |
+| `LogisticOperatorPort` | `consultOrder`, `consultStockRecord`, y variantes por identificador de `restockReturn`, `packShipment`, `dispatchShipment`, `confirmShipmentDelivery` |
+| `AdministratorPort` | `consultUser`, `issueInvoice`, `consultInvoice` |
+
+`SellerPort.consultMyProduct` es el caso que mejor muestra la ganancia: valida la pertenencia
+**mientras carga**, así que un vendedor que pida el producto de otro es rechazado en la resolución y
+no después. Lo mismo que ya hacía `BuyerRestController` en §4.1.
+
+Las variantes por identificador de las operaciones de envío existen porque el controlador de
+logística construía el `Shipment` cuando no existía y recopilaba los productos del pedido para
+decidir si requería logística (RD-LOG-01). Ambas cosas son del caso de uso, no del transporte, y
+ahora viven en `LogisticOperatorUseCaseImpl`.
+
+**Verificación:** `grep -rn "RepositoryPort" src/main/java/application/adapters/rest/` no devuelve
+nada, igual que `grep -rn "import application.domain.services" src/main/java/application/adapters/rest/`.
 
 ---
 
-## 5. Excepción documentada: `IssueInvoiceService` inyectado directamente
+## 5. Paginación de los listados
 
-La facturación corresponde al vendedor y al administrador (RD-FAC-01), pero no figura en
-`AdministratorPort`. `AdministratorRestController` inyecta `IssueInvoiceService` directamente, en
-lugar de ampliar el puerto. El servicio sigue validando el rol, que es donde vive la regla. Es la
-única desviación de RD-REST-02 y se corrige ampliando el puerto de entrada.
+Los 19 endpoints de consulta que devuelven colecciones responden con `PageResponse<T>`
+(`content`, `page`, `size`, `totalElements`, `totalPages`, `first`, `last`) y aceptan los parámetros
+`page` (por omisión `0`) y `size` (por omisión `20`, máximo `200`).
+
+**La paginación vive solo en el adaptador REST.** Los puertos de salida siguen devolviendo la
+colección completa: el dominio no expresa "la página dos de los pedidos" como concepto, y bajar
+parámetros de página hasta los repositorios metería una preocupación de transporte en el modelo
+(RD-ALC-01).
+
+La consecuencia se documenta en lugar de disimularse: **la consulta lee todas las filas que
+coinciden antes de cortar la página**, así que esto acota el tamaño de la *respuesta*, no el trabajo
+de la base de datos. Sirve para que un cliente no tenga que digerir una lista sin límite, que es su
+propósito; no es una optimización de rendimiento. Un catálogo lo bastante grande como para
+necesitarla exigiría puertos de salida paginados.
+
+`page` negativo, `size` menor que 1 o `size` mayor que 200 se rechazan con
+`IllegalArgumentException`, que `GlobalExceptionHandler` traduce a **400**. Una página más allá del
+final no es un error: devuelve una página vacía con `last: true`, lo que permite a un cliente
+avanzar sin conocer el total de antemano.
 
 ---
 
@@ -105,7 +138,7 @@ lugar de ampliar el puerto. El servicio sigue validando el rol, que es donde viv
 |---|---|---|
 | **403** | El actor no puede hacer esto | `UnauthorizedOperationException`, `UserNotActiveException`, `ProductNotOwnedException`, `WarehouseNotOwnedException`, `BuyerNotAllowedToPurchaseException` |
 | **404** | La entidad referida no existe | `EntityNotFoundException`, `InvoiceNotIssuedException` |
-| **409** | Existe, pero su estado lo prohíbe | `OrderNotModifiableException`, `InvalidOrderTransitionException`, `InsufficientStockException`, `DamagedStockException`, `ProductNotAvailableException`, `ReturnNotAllowedException`, `EmptyCartException`, `DuplicateEmailException`, `DuplicateIdentityDocumentException`, `DuplicateInventoryItemException` |
+| **409** | Existe, pero su estado lo prohíbe | `OrderNotModifiableException`, `InvalidOrderTransitionException`, `InsufficientStockException`, `DamagedStockException`, `ProductNotAvailableException`, `ReturnNotAllowedException`, `EmptyCartException`, `DuplicateEmailException`, `DuplicateIdentityDocumentException`, `DuplicateInventoryItemException`, `InvalidRoleChangeException` |
 | **400** | La petición es inconsistente | `RefundExceedsInvoiceException`, validación de DTOs, guardas de objetos de valor |
 
 El cuerpo del error incluye el campo `rule` con el nombre de la excepción, lo que mantiene la regla

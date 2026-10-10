@@ -54,4 +54,13 @@ public class InMemoryOperationLogRepository implements OperationLogRepositoryPor
     public int size() {
         return logs.size();
     }
+
+    /**
+     * Empties the log. Needed when this double is wired into a Spring context, where it lives as a
+     * singleton and would otherwise carry entries from one test into the next — a transaction
+     * rollback does not reach in-memory state.
+     */
+    public void clear() {
+        logs.clear();
+    }
 }

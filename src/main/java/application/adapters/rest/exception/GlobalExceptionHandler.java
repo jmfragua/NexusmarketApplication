@@ -10,6 +10,7 @@ import application.domain.exceptions.DuplicateInventoryItemException;
 import application.domain.exceptions.EmptyCartException;
 import application.domain.exceptions.EntityNotFoundException;
 import application.domain.exceptions.InsufficientStockException;
+import application.domain.exceptions.InvalidRoleChangeException;
 import application.domain.exceptions.InvalidOrderTransitionException;
 import application.domain.exceptions.InvoiceNotIssuedException;
 import application.domain.exceptions.OrderNotModifiableException;
@@ -64,6 +65,7 @@ public class GlobalExceptionHandler {
             Map.entry(DuplicateEmailException.class, HttpStatus.CONFLICT),
             Map.entry(DuplicateIdentityDocumentException.class, HttpStatus.CONFLICT),
             Map.entry(DuplicateInventoryItemException.class, HttpStatus.CONFLICT),
+            Map.entry(InvalidRoleChangeException.class, HttpStatus.CONFLICT),
             Map.entry(RefundExceedsInvoiceException.class, HttpStatus.BAD_REQUEST));
 
     @ExceptionHandler(DomainException.class)

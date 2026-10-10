@@ -21,6 +21,41 @@ Todo error devuelve el mismo cuerpo:
 { "status": 409, "rule": "OrderNotModifiableException", "message": "..." }
 ```
 
+### Paginación
+
+**Todo endpoint `GET` que devuelva una colección está paginado** y acepta dos parámetros de
+consulta opcionales:
+
+| Parámetro | Por omisión | Rango |
+|---|---|---|
+| `page` | `0` | `>= 0` |
+| `size` | `20` | `1..200` |
+
+La respuesta no es un arreglo, sino el envoltorio:
+
+```json
+{
+  "content": [ ... ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 37,
+  "totalPages": 2,
+  "first": true,
+  "last": false
+}
+```
+
+Una página más allá del final devuelve `content` vacío con `last: true`, lo que permite avanzar sin
+conocer el total. Un `page` negativo o un `size` fuera de rango devuelven **400**. El corte se hace
+en el adaptador REST sobre la colección completa; la limitación está documentada en
+[Rest-adapters.md](Rest-adapters.md) §5.
+
+### Documentación navegable
+
+`springdoc-openapi` publica el contrato en `/v3/api-docs` y la interfaz en `/swagger-ui.html`, ambas
+abiertas sin autenticación. El esquema `bearerAuth` está declarado, así que el botón *Authorize*
+permite pegar el JWT obtenido en `/api/v1/auth/login` y probar los endpoints protegidos desde ahí.
+
 ---
 
 ## 2. Acceso público — sin autenticación

@@ -309,6 +309,19 @@ desempeña un único rol y solo puede interactuar con la información correspond
 **Reglas.** Obligatorio y único por usuario (RG-02). Ningún participante podrá administrar
 información fuera de su rol (RG-03).
 
+**Operaciones.**
+
+| Método | Qué responde |
+|---|---|
+| `canModifyBusinessData()` | Falso solo para `SUPERVISOR`, perfil de consulta (RD-ROL-06) |
+| `ownsSpecialization()` | Verdadero para `BUYER` y `SELLER`: tienen entidad propia, con estado y reglas de creación que los demás no tienen (RD-ROL-07) |
+| `canBeReassignedTo(newRole)` | Verdadero cuando ninguno de los dos roles tiene especialización propia, o cuando son el mismo (RD-ROL-08) |
+
+`ownsSpecialization()` no es un detalle de implementación: es la frontera que decide si un cambio de
+rol es un cambio de atributo o un cambio de entidad. Los tres roles sin especialización viven en
+`StaffUser`, así que intercambiarlos es reasignar un valor; `BUYER` y `SELLER` son clases distintas,
+y ninguna reasignación de atributo puede convertir una en otra.
+
 ---
 
 ### 4.2 UserStatus

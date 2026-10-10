@@ -135,6 +135,7 @@ Los servicios señalan las violaciones de regla con las excepciones de
 | `EntityNotFoundException` | Referencia a una entidad inexistente |
 | `UnauthorizedOperationException` | RG-03, RD-ROL-03 |
 | `UserNotActiveException` | RG-01, RD-ROL-01 |
+| `InvalidRoleChangeException` | RD-ROL-08 |
 | `DuplicateEmailException` | RD-ID-03 |
 | `DuplicateIdentityDocumentException` | RD-ID-04 |
 | `BuyerNotAllowedToPurchaseException` | Estado comercial del comprador |

@@ -5,6 +5,7 @@ import application.adapters.rest.dtos.requests.RegisterProductRequest;
 import application.adapters.rest.dtos.requests.StockMovementRequest;
 import application.adapters.rest.dtos.responses.InventoryItemResponse;
 import application.adapters.rest.dtos.responses.InventoryMovementResponse;
+import application.adapters.rest.dtos.responses.PageResponse;
 import application.adapters.rest.dtos.responses.ProductResponse;
 import application.adapters.rest.dtos.responses.WarehouseResponse;
 import application.adapters.rest.mappers.InventoryRestMapper;
@@ -15,8 +16,6 @@ import application.domain.models.Product;
 import application.domain.models.ProductVariant;
 import application.domain.models.Seller;
 import application.domain.ports.in.SellerPort;
-import application.domain.ports.out.InventoryItemRepositoryPort;
-import application.domain.ports.out.ProductRepositoryPort;
 import application.domain.valuesObjects.InventoryItemId;
 import application.domain.valuesObjects.InventoryMovementId;
 import application.domain.valuesObjects.ProductId;
@@ -25,7 +24,6 @@ import application.domain.valuesObjects.WarehouseId;
 import application.infrastructure.security.ActorResolver;
 import application.infrastructure.security.DomainUserPrincipal;
 import jakarta.validation.Valid;
-import java.util.List;
 import java.util.Objects;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -36,16 +34,16 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Seller endpoints: own catalogue, own warehouses and own stock.
  *
- * <p>Output ports are injected here only to <em>resolve</em> an entity from the identifier the URL
- * carries. They never decide anything: every operation afterwards goes through the entry port, and
- * the domain service re-validates role and ownership before touching the model (RG-03, RD-CAT-01).
- * Loading through a repository therefore grants no privilege — a seller who resolves someone else's
- * product still gets rejected by {@code ValidateSellerOwnershipService}.</p>
+ * <p>The controller holds no output port: the identifiers the URL carries are resolved through the
+ * entry port itself ({@code consultMyProduct}, {@code consultStockRecord}), which validates role and
+ * ownership while loading (RG-03, RD-CAT-01). A seller asking for someone else's product is
+ * therefore rejected by the resolution, not after it.</p>
  */
 @RestController
 @RequestMapping("/api/v1/seller")
@@ -53,16 +51,8 @@ public class SellerRestController {
 
     private final SellerPort sellerPort;
 
-    private final ProductRepositoryPort productRepositoryPort;
-
-    private final InventoryItemRepositoryPort inventoryItemRepositoryPort;
-
-    public SellerRestController(SellerPort sellerPort,
-                                ProductRepositoryPort productRepositoryPort,
-                                InventoryItemRepositoryPort inventoryItemRepositoryPort) {
+    public SellerRestController(SellerPort sellerPort) {
         this.sellerPort = Objects.requireNonNull(sellerPort);
-        this.productRepositoryPort = Objects.requireNonNull(productRepositoryPort);
-        this.inventoryItemRepositoryPort = Objects.requireNonNull(inventoryItemRepositoryPort);
     }
 
     // Catalogue
@@ -77,12 +67,14 @@ public class SellerRestController {
     }
 
     @GetMapping("/products")
-    public ResponseEntity<List<ProductResponse>> consultMyCatalog(
-            @AuthenticationPrincipal DomainUserPrincipal principal) {
+    public ResponseEntity<PageResponse<ProductResponse>> consultMyCatalog(
+            @AuthenticationPrincipal DomainUserPrincipal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
         Seller seller = ActorResolver.requireSeller(principal.user());
-        return ResponseEntity.ok(sellerPort.consultMyCatalog(seller).stream()
+        return ResponseEntity.ok(PageResponse.of(sellerPort.consultMyCatalog(seller).stream()
                 .map(ProductRestMapper::toResponse)
-                .toList());
+                .toList(), page, size));
     }
 
     @PostMapping("/products/{productId}/publication")
@@ -90,7 +82,7 @@ public class SellerRestController {
                                                           @PathVariable String productId) {
         Seller seller = ActorResolver.requireSeller(principal.user());
         return ResponseEntity.ok(
-                ProductRestMapper.toResponse(sellerPort.publishProduct(seller, productOf(productId))));
+                ProductRestMapper.toResponse(sellerPort.publishProduct(seller, productOf(seller, productId))));
     }
 
     @DeleteMapping("/products/{productId}/publication")
@@ -98,7 +90,7 @@ public class SellerRestController {
                                                           @PathVariable String productId) {
         Seller seller = ActorResolver.requireSeller(principal.user());
         return ResponseEntity.ok(
-                ProductRestMapper.toResponse(sellerPort.suspendProduct(seller, productOf(productId))));
+                ProductRestMapper.toResponse(sellerPort.suspendProduct(seller, productOf(seller, productId))));
     }
 
     @DeleteMapping("/products/{productId}")
@@ -106,7 +98,7 @@ public class SellerRestController {
                                                               @PathVariable String productId) {
         Seller seller = ActorResolver.requireSeller(principal.user());
         return ResponseEntity.ok(
-                ProductRestMapper.toResponse(sellerPort.discontinueProduct(seller, productOf(productId))));
+                ProductRestMapper.toResponse(sellerPort.discontinueProduct(seller, productOf(seller, productId))));
     }
 
     @PostMapping("/products/{productId}/variants")
@@ -114,7 +106,7 @@ public class SellerRestController {
                                                       @PathVariable String productId,
                                                       @Valid @RequestBody AddProductVariantRequest request) {
         Seller seller = ActorResolver.requireSeller(principal.user());
-        Product product = productOf(productId);
+        Product product = productOf(seller, productId);
         ProductVariant variant = ProductRestMapper.toVariantDomain(request, product.getIdentifier());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ProductRestMapper.toResponse(sellerPort.addProductVariant(seller, product, variant)));
@@ -125,7 +117,7 @@ public class SellerRestController {
                                                          @PathVariable String productId,
                                                          @PathVariable String variantId) {
         Seller seller = ActorResolver.requireSeller(principal.user());
-        Product product = productOf(productId);
+        Product product = productOf(seller, productId);
         ProductVariant variant = product.getVariants().stream()
                 .filter(candidate -> candidate.getIdentifier().getValue().equals(variantId))
                 .findFirst()
@@ -138,12 +130,14 @@ public class SellerRestController {
     // Warehouses
 
     @GetMapping("/warehouses")
-    public ResponseEntity<List<WarehouseResponse>> consultMyWarehouses(
-            @AuthenticationPrincipal DomainUserPrincipal principal) {
+    public ResponseEntity<PageResponse<WarehouseResponse>> consultMyWarehouses(
+            @AuthenticationPrincipal DomainUserPrincipal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
         Seller seller = ActorResolver.requireSeller(principal.user());
-        return ResponseEntity.ok(sellerPort.consultMyWarehouses(seller).stream()
+        return ResponseEntity.ok(PageResponse.of(sellerPort.consultMyWarehouses(seller).stream()
                 .map(InventoryRestMapper::toResponse)
-                .toList());
+                .toList(), page, size));
     }
 
     @GetMapping("/warehouses/{warehouseId}")
@@ -158,13 +152,16 @@ public class SellerRestController {
     // Inventory
 
     @GetMapping("/products/{productId}/stock")
-    public ResponseEntity<List<InventoryItemResponse>> consultStockOfMyProduct(
+    public ResponseEntity<PageResponse<InventoryItemResponse>> consultStockOfMyProduct(
             @AuthenticationPrincipal DomainUserPrincipal principal,
-            @PathVariable String productId) {
+            @PathVariable String productId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
         Seller seller = ActorResolver.requireSeller(principal.user());
-        return ResponseEntity.ok(sellerPort.consultStockOfMyProduct(seller, ProductId.of(productId)).stream()
-                .map(InventoryRestMapper::toResponse)
-                .toList());
+        return ResponseEntity.ok(PageResponse.of(
+                sellerPort.consultStockOfMyProduct(seller, ProductId.of(productId)).stream()
+                        .map(InventoryRestMapper::toResponse)
+                        .toList(), page, size));
     }
 
     @PostMapping("/stock/receipts")
@@ -173,7 +170,7 @@ public class SellerRestController {
             @Valid @RequestBody StockMovementRequest request) {
         Seller seller = ActorResolver.requireSeller(principal.user());
         InventoryMovementResponse response = InventoryRestMapper.toResponse(sellerPort.receiveStock(
-                seller, stockOf(request.inventoryItemId()), Quantity.of(request.quantity()),
+                seller, stockOf(seller, request.inventoryItemId()), Quantity.of(request.quantity()),
                 InventoryMovementId.of(request.movementId())));
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -184,7 +181,7 @@ public class SellerRestController {
             @Valid @RequestBody StockMovementRequest request) {
         Seller seller = ActorResolver.requireSeller(principal.user());
         InventoryMovementResponse response = InventoryRestMapper.toResponse(sellerPort.adjustStock(
-                seller, stockOf(request.inventoryItemId()), Quantity.of(request.quantity()),
+                seller, stockOf(seller, request.inventoryItemId()), Quantity.of(request.quantity()),
                 InventoryMovementId.of(request.movementId())));
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -195,17 +192,14 @@ public class SellerRestController {
             @PathVariable String inventoryItemId) {
         Seller seller = ActorResolver.requireSeller(principal.user());
         return ResponseEntity.ok(InventoryRestMapper.toResponse(
-                sellerPort.markStockAsDamaged(seller, stockOf(inventoryItemId))));
+                sellerPort.markStockAsDamaged(seller, stockOf(seller, inventoryItemId))));
     }
 
-    private Product productOf(String productId) {
-        return productRepositoryPort.findById(ProductId.of(productId))
-                .orElseThrow(() -> new EntityNotFoundException("product", ProductId.of(productId)));
+    private Product productOf(Seller seller, String productId) {
+        return sellerPort.consultMyProduct(seller, ProductId.of(productId));
     }
 
-    private InventoryItem stockOf(String inventoryItemId) {
-        return inventoryItemRepositoryPort.findById(InventoryItemId.of(inventoryItemId))
-                .orElseThrow(() -> new EntityNotFoundException("stock record",
-                        InventoryItemId.of(inventoryItemId)));
+    private InventoryItem stockOf(Seller seller, String inventoryItemId) {
+        return sellerPort.consultStockRecord(seller, InventoryItemId.of(inventoryItemId));
     }
 }

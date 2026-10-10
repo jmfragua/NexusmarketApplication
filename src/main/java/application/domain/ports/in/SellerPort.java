@@ -7,6 +7,7 @@ import application.domain.models.ProductVariant;
 import application.domain.models.Seller;
 import application.domain.models.SellerWarehouse;
 import application.domain.models.Warehouse;
+import application.domain.valuesObjects.InventoryItemId;
 import application.domain.valuesObjects.InventoryMovementId;
 import application.domain.valuesObjects.ProductId;
 import application.domain.valuesObjects.Quantity;
@@ -38,6 +39,12 @@ public interface SellerPort {
 
     List<Product> consultMyCatalog(Seller seller);
 
+    /**
+     * Resolves one of the own products of the seller by its identifier, validating ownership while
+     * loading it (RD-CAT-01).
+     */
+    Product consultMyProduct(Seller seller, ProductId productId);
+
     // Own warehouses
 
     List<SellerWarehouse> consultMyWarehouses(Seller seller);
@@ -55,4 +62,9 @@ public interface SellerPort {
     InventoryItem markStockAsDamaged(Seller seller, InventoryItem inventoryItem);
 
     List<InventoryItem> consultStockOfMyProduct(Seller seller, ProductId productId);
+
+    /**
+     * Resolves a stock record by its identifier for the operations that act upon it.
+     */
+    InventoryItem consultStockRecord(Seller seller, InventoryItemId inventoryItemId);
 }

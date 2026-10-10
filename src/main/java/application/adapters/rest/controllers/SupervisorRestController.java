@@ -4,6 +4,7 @@ import application.adapters.rest.dtos.responses.InventoryItemResponse;
 import application.adapters.rest.dtos.responses.InventoryMovementResponse;
 import application.adapters.rest.dtos.responses.InvoiceResponse;
 import application.adapters.rest.dtos.responses.OrderResponse;
+import application.adapters.rest.dtos.responses.PageResponse;
 import application.adapters.rest.dtos.responses.RefundResponse;
 import application.adapters.rest.mappers.AfterSalesRestMapper;
 import application.adapters.rest.mappers.InventoryRestMapper;
@@ -13,7 +14,6 @@ import application.domain.valuesObjects.OrderStatus;
 import application.domain.valuesObjects.WarehouseId;
 import application.infrastructure.security.DomainUserPrincipal;
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.springframework.http.ResponseEntity;
@@ -42,29 +42,35 @@ public class SupervisorRestController {
     }
 
     @GetMapping("/orders")
-    public ResponseEntity<List<OrderResponse>> consultOrdersByStatus(
+    public ResponseEntity<PageResponse<OrderResponse>> consultOrdersByStatus(
             @AuthenticationPrincipal DomainUserPrincipal principal,
-            @RequestParam String status) {
-        return ResponseEntity.ok(
+            @RequestParam String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(PageResponse.of(
                 supervisorPort.consultOrdersByStatus(principal.user(), OrderStatus.valueOf(status)).stream()
                         .map(OrderRestMapper::toResponse)
-                        .toList());
+                        .toList(), page, size));
     }
 
     @GetMapping("/reports/completed-orders")
-    public ResponseEntity<List<OrderResponse>> consultCompletedOrders(
-            @AuthenticationPrincipal DomainUserPrincipal principal) {
-        return ResponseEntity.ok(supervisorPort.consultCompletedOrders(principal.user()).stream()
+    public ResponseEntity<PageResponse<OrderResponse>> consultCompletedOrders(
+            @AuthenticationPrincipal DomainUserPrincipal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(PageResponse.of(supervisorPort.consultCompletedOrders(principal.user()).stream()
                 .map(OrderRestMapper::toResponse)
-                .toList());
+                .toList(), page, size));
     }
 
     @GetMapping("/reports/invoices")
-    public ResponseEntity<List<InvoiceResponse>> consultIssuedInvoices(
-            @AuthenticationPrincipal DomainUserPrincipal principal) {
-        return ResponseEntity.ok(supervisorPort.consultIssuedInvoices(principal.user()).stream()
+    public ResponseEntity<PageResponse<InvoiceResponse>> consultIssuedInvoices(
+            @AuthenticationPrincipal DomainUserPrincipal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(PageResponse.of(supervisorPort.consultIssuedInvoices(principal.user()).stream()
                 .map(AfterSalesRestMapper::toResponse)
-                .toList());
+                .toList(), page, size));
     }
 
     /**
@@ -83,36 +89,44 @@ public class SupervisorRestController {
     }
 
     @GetMapping("/reports/warehouses/{warehouseId}/stock")
-    public ResponseEntity<List<InventoryItemResponse>> consultStockByWarehouse(
+    public ResponseEntity<PageResponse<InventoryItemResponse>> consultStockByWarehouse(
             @AuthenticationPrincipal DomainUserPrincipal principal,
-            @PathVariable String warehouseId) {
-        return ResponseEntity.ok(
+            @PathVariable String warehouseId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(PageResponse.of(
                 supervisorPort.consultStockByWarehouse(principal.user(), WarehouseId.of(warehouseId)).stream()
                         .map(InventoryRestMapper::toResponse)
-                        .toList());
+                        .toList(), page, size));
     }
 
     @GetMapping("/reports/damaged-stock")
-    public ResponseEntity<List<InventoryItemResponse>> consultDamagedStock(
-            @AuthenticationPrincipal DomainUserPrincipal principal) {
-        return ResponseEntity.ok(supervisorPort.consultDamagedStock(principal.user()).stream()
+    public ResponseEntity<PageResponse<InventoryItemResponse>> consultDamagedStock(
+            @AuthenticationPrincipal DomainUserPrincipal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(PageResponse.of(supervisorPort.consultDamagedStock(principal.user()).stream()
                 .map(InventoryRestMapper::toResponse)
-                .toList());
+                .toList(), page, size));
     }
 
     @GetMapping("/reports/inventory-movements")
-    public ResponseEntity<List<InventoryMovementResponse>> consultInventoryMovements(
-            @AuthenticationPrincipal DomainUserPrincipal principal) {
-        return ResponseEntity.ok(supervisorPort.consultInventoryMovements(principal.user()).stream()
+    public ResponseEntity<PageResponse<InventoryMovementResponse>> consultInventoryMovements(
+            @AuthenticationPrincipal DomainUserPrincipal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(PageResponse.of(supervisorPort.consultInventoryMovements(principal.user()).stream()
                 .map(InventoryRestMapper::toResponse)
-                .toList());
+                .toList(), page, size));
     }
 
     @GetMapping("/reports/refunds")
-    public ResponseEntity<List<RefundResponse>> consultRefunds(
-            @AuthenticationPrincipal DomainUserPrincipal principal) {
-        return ResponseEntity.ok(supervisorPort.consultRefunds(principal.user()).stream()
+    public ResponseEntity<PageResponse<RefundResponse>> consultRefunds(
+            @AuthenticationPrincipal DomainUserPrincipal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(PageResponse.of(supervisorPort.consultRefunds(principal.user()).stream()
                 .map(AfterSalesRestMapper::toResponse)
-                .toList());
+                .toList(), page, size));
     }
 }

@@ -1,5 +1,6 @@
 package application.adapters.useCases;
 
+import application.domain.exceptions.EntityNotFoundException;
 import application.domain.models.InventoryItem;
 import application.domain.models.InventoryMovement;
 import application.domain.models.Order;
@@ -10,6 +11,12 @@ import application.domain.models.Shipment;
 import application.domain.models.User;
 import application.domain.models.Warehouse;
 import application.domain.ports.in.LogisticOperatorPort;
+import application.domain.ports.out.InventoryItemRepositoryPort;
+import application.domain.ports.out.OrderRepositoryPort;
+import application.domain.ports.out.ProductRepositoryPort;
+import application.domain.ports.out.ProductReturnRepositoryPort;
+import application.domain.ports.out.ShipmentRepositoryPort;
+import application.domain.services.authorization.ValidateRoleAuthorizationService;
 import application.domain.services.inventory.ConsultInventoryService;
 import application.domain.services.inventory.IssueForSaleService;
 import application.domain.services.inventory.ReceiveStockService;
@@ -21,9 +28,15 @@ import application.domain.services.shipment.ConfirmShipmentDeliveryService;
 import application.domain.services.shipment.DispatchShipmentService;
 import application.domain.services.shipment.PackShipmentService;
 import application.domain.services.warehouse.ConsultWarehouseService;
+import application.domain.valuesObjects.Address;
+import application.domain.valuesObjects.InventoryItemId;
 import application.domain.valuesObjects.InventoryMovementId;
+import application.domain.valuesObjects.OrderId;
 import application.domain.valuesObjects.OrderStatus;
+import application.domain.valuesObjects.ProductReturnId;
 import application.domain.valuesObjects.Quantity;
+import application.domain.valuesObjects.ShipmentId;
+import application.domain.valuesObjects.UserRole;
 import application.domain.valuesObjects.WarehouseId;
 import java.util.Collection;
 import java.util.List;
@@ -58,6 +71,18 @@ public class LogisticOperatorUseCaseImpl implements LogisticOperatorPort {
 
     private final ConsultOrderService consultOrderService;
 
+    private final ValidateRoleAuthorizationService validateRoleAuthorizationService;
+
+    private final OrderRepositoryPort orderRepositoryPort;
+
+    private final InventoryItemRepositoryPort inventoryItemRepositoryPort;
+
+    private final ShipmentRepositoryPort shipmentRepositoryPort;
+
+    private final ProductRepositoryPort productRepositoryPort;
+
+    private final ProductReturnRepositoryPort productReturnRepositoryPort;
+
     public LogisticOperatorUseCaseImpl(ConsultWarehouseService consultWarehouseService,
                                        ConsultInventoryService consultInventoryService,
                                        ReceiveStockService receiveStockService,
@@ -68,7 +93,13 @@ public class LogisticOperatorUseCaseImpl implements LogisticOperatorPort {
                                        PackShipmentService packShipmentService,
                                        DispatchShipmentService dispatchShipmentService,
                                        ConfirmShipmentDeliveryService confirmShipmentDeliveryService,
-                                       ConsultOrderService consultOrderService) {
+                                       ConsultOrderService consultOrderService,
+                                       ValidateRoleAuthorizationService validateRoleAuthorizationService,
+                                       OrderRepositoryPort orderRepositoryPort,
+                                       InventoryItemRepositoryPort inventoryItemRepositoryPort,
+                                       ShipmentRepositoryPort shipmentRepositoryPort,
+                                       ProductRepositoryPort productRepositoryPort,
+                                       ProductReturnRepositoryPort productReturnRepositoryPort) {
         this.consultWarehouseService = Objects.requireNonNull(consultWarehouseService);
         this.consultInventoryService = Objects.requireNonNull(consultInventoryService);
         this.receiveStockService = Objects.requireNonNull(receiveStockService);
@@ -80,6 +111,38 @@ public class LogisticOperatorUseCaseImpl implements LogisticOperatorPort {
         this.dispatchShipmentService = Objects.requireNonNull(dispatchShipmentService);
         this.confirmShipmentDeliveryService = Objects.requireNonNull(confirmShipmentDeliveryService);
         this.consultOrderService = Objects.requireNonNull(consultOrderService);
+        this.validateRoleAuthorizationService = Objects.requireNonNull(validateRoleAuthorizationService);
+        this.orderRepositoryPort = Objects.requireNonNull(orderRepositoryPort);
+        this.inventoryItemRepositoryPort = Objects.requireNonNull(inventoryItemRepositoryPort);
+        this.shipmentRepositoryPort = Objects.requireNonNull(shipmentRepositoryPort);
+        this.productRepositoryPort = Objects.requireNonNull(productRepositoryPort);
+        this.productReturnRepositoryPort = Objects.requireNonNull(productReturnRepositoryPort);
+    }
+
+    /**
+     * The roles that take part in the management of an order are the ones allowed to resolve one
+     * here, mirroring {@code ConsultOrderService.consultByStatus} (RD-ROL-06).
+     */
+    @Override
+    public Order consultOrder(User<?> operator, OrderId orderId) {
+        validateCanResolve(operator, "consult order");
+        return requireOrder(orderId);
+    }
+
+    @Override
+    public InventoryItem consultStockRecord(User<?> operator, InventoryItemId inventoryItemId) {
+        validateCanResolve(operator, "consult stock record");
+        return requireStockRecord(inventoryItemId);
+    }
+
+    /**
+     * Guards every resolution by identifier, and it runs <em>before</em> the lookup on purpose: if it
+     * ran after, an actor with no right to the operation would learn from a 404 versus a 403 whether
+     * the entity exists (RD-ROL-03). The role check has to be the first thing that happens.
+     */
+    private void validateCanResolve(User<?> operator, String operation) {
+        validateRoleAuthorizationService.validate(operator, operation, UserRole.SELLER,
+                UserRole.LOGISTICS_OPERATOR, UserRole.ADMINISTRATOR, UserRole.SUPERVISOR);
     }
 
     @Override
@@ -143,7 +206,69 @@ public class LogisticOperatorUseCaseImpl implements LogisticOperatorPort {
     }
 
     @Override
+    public InventoryMovement restockReturn(User<?> operator, ProductReturnId returnId,
+                                           InventoryItemId inventoryItemId, InventoryMovementId movementId) {
+        validateCanResolve(operator, "restock return");
+        ProductReturn productReturn = productReturnRepositoryPort.findById(returnId)
+                .orElseThrow(() -> new EntityNotFoundException("product return", returnId));
+        return restockReturn(operator, productReturn, requireStockRecord(inventoryItemId), movementId);
+    }
+
+    @Override
     public List<Order> consultOrdersByStatus(User<?> operator, OrderStatus status) {
         return consultOrderService.consultByStatus(operator, status);
+    }
+
+    @Override
+    public Shipment packShipment(User<?> operator, ShipmentId shipmentId, OrderId orderId,
+                                 WarehouseId originWarehouseId, Address deliveryAddress) {
+        validateCanResolve(operator, "pack shipment");
+        Order order = requireOrder(orderId);
+        Shipment shipment = shipmentRepositoryPort.findById(shipmentId)
+                .orElseGet(() -> new Shipment(
+                        shipmentId,
+                        order.getIdentifier(),
+                        Objects.requireNonNull(originWarehouseId,
+                                "the origin warehouse is mandatory to open a shipment"),
+                        Objects.requireNonNullElse(deliveryAddress, order.getDeliveryAddress())));
+        return packShipment(operator, shipment, order, productsOf(order));
+    }
+
+    @Override
+    public Shipment dispatchShipment(User<?> operator, ShipmentId shipmentId, OrderId orderId) {
+        validateCanResolve(operator, "dispatch shipment");
+        return dispatchShipment(operator, requireShipment(shipmentId), requireOrder(orderId));
+    }
+
+    @Override
+    public Shipment confirmShipmentDelivery(User<?> operator, ShipmentId shipmentId, OrderId orderId) {
+        validateCanResolve(operator, "confirm shipment delivery");
+        return confirmShipmentDelivery(operator, requireShipment(shipmentId), requireOrder(orderId));
+    }
+
+    /**
+     * Collects the products referenced by the order, which are what decide whether it needs logistics
+     * at all: the lines carry no product type (RD-LOG-01).
+     */
+    private List<Product> productsOf(Order order) {
+        return order.getLines().stream()
+                .map(line -> productRepositoryPort.findById(line.getProductId())
+                        .orElseThrow(() -> new EntityNotFoundException("product", line.getProductId())))
+                .toList();
+    }
+
+    private Order requireOrder(OrderId orderId) {
+        return orderRepositoryPort.findById(orderId)
+                .orElseThrow(() -> new EntityNotFoundException("order", orderId));
+    }
+
+    private Shipment requireShipment(ShipmentId shipmentId) {
+        return shipmentRepositoryPort.findById(shipmentId)
+                .orElseThrow(() -> new EntityNotFoundException("shipment", shipmentId));
+    }
+
+    private InventoryItem requireStockRecord(InventoryItemId inventoryItemId) {
+        return inventoryItemRepositoryPort.findById(inventoryItemId)
+                .orElseThrow(() -> new EntityNotFoundException("stock record", inventoryItemId));
     }
 }

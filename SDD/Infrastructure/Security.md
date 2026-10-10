@@ -114,11 +114,13 @@ Falla con la excepción de dominio correspondiente, que `GlobalExceptionHandler`
 
 ```java
 http.csrf(disable)
+    .cors(cors -> cors.configurationSource(corsConfigurationSource))
     .sessionManagement(STATELESS)
     .authorizeHttpRequests(requests -> requests
         .requestMatchers("/api/v1/auth/**").permitAll()
         .requestMatchers(GET, "/api/v1/catalog/**").permitAll()
         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
         .anyRequest().authenticated())
     .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 ```
@@ -128,6 +130,27 @@ mantener.
 
 **El catálogo abierto** es la única lectura fuera de RG-01, y es deliberada: la especificación
 describe un catálogo público, y un visitante debe poder navegarlo antes de registrarse.
+
+**La documentación abierta** (`/swagger-ui.html`, `/v3/api-docs`) describe el contrato, no expone
+datos. Si se cerrara, nadie podría consultar cómo autenticarse para poder abrirla.
+
+---
+
+## 6.1 CORS: orígenes configurados, nunca comodín
+
+Un cliente web servido desde otro dominio no puede llamar al API sin CORS. La configuración vive
+en `SecurityConfig.corsConfigurationSource`, aplicada solo a `/api/**`:
+
+| Ajuste | Valor |
+|---|---|
+| Orígenes | `nexusmarket.security.cors.allowed-origins` (por omisión `http://localhost:5173`) |
+| Métodos | `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS` |
+| Cabeceras | `Authorization`, `Content-Type` |
+
+**Por qué nunca `*`:** este API se autentica con un *bearer token* que el cliente guarda y envía en
+cada petición. Abrir el origen a cualquier dominio permitiría a una página arbitraria gastar la
+sesión de un usuario autenticado. El comodín sería además incompatible con enviar credenciales. Los
+orígenes se declaran por variable de entorno `CORS_ALLOWED_ORIGINS` en despliegue.
 
 ---
 
@@ -170,5 +193,18 @@ archivo de propiedades. En despliegue se inyecta por variable de entorno `JWT_SE
 | Cadena basura, vacía o nula | Rechazado sin lanzar excepción |
 | Firma manipulada | Rechazado |
 
-**Pendiente:** no existe todavía un test del `JwtAuthenticationFilter` que cubra el caso central de
-la decisión de §4 — un token válido de un usuario que fue bloqueado después de emitirlo.
+`JwtAuthenticationFilterTest` cubre la decisión de §4, que es la que no se puede verificar leyendo
+el proveedor:
+
+| Caso | Resultado esperado |
+|---|---|
+| Token válido de usuario activo | Autentica, con el subtipo concreto (`Buyer`/`Seller`) en el principal |
+| **Token válido de usuario bloqueado después de emitirlo** | **Rechazado**: el filtro relee el estado real |
+| Token válido de un usuario que ya no existe | Rechazado |
+| Cabecera ausente, vacía o sin el prefijo `Bearer ` | Pasa sin autenticar, para que la cadena devuelva 401/403 |
+
+El segundo caso es el motivo de la decisión de §4 y la razón por la que el filtro no se conforma con
+el *claim* del token.
+
+El ciclo completo por HTTP lo cubre `PurchaseFlowEndToEndTest`, que arranca el contexto real y
+recorre plataforma vacía → pedido pagado, incluido el rechazo de un token manipulado.

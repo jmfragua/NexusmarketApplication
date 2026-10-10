@@ -1,5 +1,6 @@
 package application.domain.models;
 
+import application.domain.exceptions.InvalidRoleChangeException;
 import application.domain.valuesObjects.EmailAddress;
 import application.domain.valuesObjects.FullName;
 import application.domain.valuesObjects.Identifier;
@@ -61,9 +62,22 @@ public abstract class User<ID extends Identifier> extends DomainEntity<ID> {
 
     /**
      * Reassigns the role. It stays unique per user (RG-02): the attribute holds a single value.
+     *
+     * <p>Only roles that own no specialization of their own can be exchanged this way (RD-ROL-08).
+     * A {@code Buyer} cannot become an administrator by flipping this attribute: its class is what
+     * carries the addresses, the commercial status and the cart, and a {@code Seller} only exists
+     * incorporated with its first warehouse (RD-ROL-05). Persistence makes the limit visible —
+     * the stored discriminator, not this column, decides which entity is rebuilt on reload — so
+     * accepting such a change here would silently lose it.</p>
+     *
+     * @throws InvalidRoleChangeException when the reassignment crosses a specialization boundary.
      */
     public void changeRole(UserRole newRole) {
-        this.role = Objects.requireNonNull(newRole, "role is mandatory");
+        Objects.requireNonNull(newRole, "role is mandatory");
+        if (!this.role.canBeReassignedTo(newRole)) {
+            throw new InvalidRoleChangeException(this.role, newRole);
+        }
+        this.role = newRole;
     }
 
     /**

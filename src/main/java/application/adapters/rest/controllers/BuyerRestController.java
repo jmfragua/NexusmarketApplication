@@ -9,6 +9,7 @@ import application.adapters.rest.dtos.responses.BuyerResponse;
 import application.adapters.rest.dtos.responses.CartResponse;
 import application.adapters.rest.dtos.responses.InvoiceResponse;
 import application.adapters.rest.dtos.responses.OrderResponse;
+import application.adapters.rest.dtos.responses.PageResponse;
 import application.adapters.rest.dtos.responses.ProductReturnResponse;
 import application.adapters.rest.mappers.AfterSalesRestMapper;
 import application.adapters.rest.mappers.CartRestMapper;
@@ -45,6 +46,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -158,11 +160,14 @@ public class BuyerRestController {
     }
 
     @GetMapping("/me/orders")
-    public ResponseEntity<List<OrderResponse>> consultMyOrders(@AuthenticationPrincipal DomainUserPrincipal principal) {
+    public ResponseEntity<PageResponse<OrderResponse>> consultMyOrders(
+            @AuthenticationPrincipal DomainUserPrincipal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
         Buyer buyer = ActorResolver.requireBuyer(principal.user());
-        return ResponseEntity.ok(buyerPort.consultMyOrders(buyer).stream()
+        return ResponseEntity.ok(PageResponse.of(buyerPort.consultMyOrders(buyer).stream()
                 .map(OrderRestMapper::toResponse)
-                .toList());
+                .toList(), page, size));
     }
 
     @GetMapping("/me/orders/{orderId}")
@@ -176,12 +181,14 @@ public class BuyerRestController {
     // Invoicing
 
     @GetMapping("/me/invoices")
-    public ResponseEntity<List<InvoiceResponse>> consultMyInvoices(
-            @AuthenticationPrincipal DomainUserPrincipal principal) {
+    public ResponseEntity<PageResponse<InvoiceResponse>> consultMyInvoices(
+            @AuthenticationPrincipal DomainUserPrincipal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
         Buyer buyer = ActorResolver.requireBuyer(principal.user());
-        return ResponseEntity.ok(buyerPort.consultMyInvoices(buyer).stream()
+        return ResponseEntity.ok(PageResponse.of(buyerPort.consultMyInvoices(buyer).stream()
                 .map(AfterSalesRestMapper::toResponse)
-                .toList());
+                .toList(), page, size));
     }
 
     @GetMapping("/me/orders/{orderId}/invoice")
@@ -206,14 +213,16 @@ public class BuyerRestController {
     }
 
     @GetMapping("/me/orders/{orderId}/returns")
-    public ResponseEntity<List<ProductReturnResponse>> consultMyReturns(
+    public ResponseEntity<PageResponse<ProductReturnResponse>> consultMyReturns(
             @AuthenticationPrincipal DomainUserPrincipal principal,
-            @PathVariable String orderId) {
+            @PathVariable String orderId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
         Buyer buyer = ActorResolver.requireBuyer(principal.user());
         Order order = buyerPort.consultMyOrder(buyer, OrderId.of(orderId));
-        return ResponseEntity.ok(buyerPort.consultMyReturns(buyer, order).stream()
+        return ResponseEntity.ok(PageResponse.of(buyerPort.consultMyReturns(buyer, order).stream()
                 .map(AfterSalesRestMapper::toResponse)
-                .toList());
+                .toList(), page, size));
     }
 
     /**

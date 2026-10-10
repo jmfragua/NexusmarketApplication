@@ -71,7 +71,7 @@ src/main/java/application/
 ├── domain/
 │   ├── models/              23 archivos (DomainEntity + 22 entidades)
 │   ├── valuesObjects/       37 objetos de valor y enumeraciones
-│   ├── exceptions/          20 excepciones de dominio
+│   ├── exceptions/          21 excepciones de dominio
 │   ├── ports/
 │   │   ├── in/               6 puertos de entrada (uno por rol)
 │   │   └── out/             13 puertos de salida (uno por agregado)

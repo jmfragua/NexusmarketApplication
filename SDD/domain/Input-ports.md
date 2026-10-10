@@ -132,6 +132,7 @@ public interface SellerPort {
     Product addProductVariant(Seller seller, Product product, ProductVariant variant);
     Product removeProductVariant(Seller seller, Product product, ProductVariant variant);
     List<Product> consultMyCatalog(Seller seller);
+    Product consultMyProduct(Seller seller, ProductId productId);
 
     List<SellerWarehouse> consultMyWarehouses(Seller seller);
     Warehouse consultMyWarehouse(Seller seller, WarehouseId warehouseId);
@@ -142,6 +143,7 @@ public interface SellerPort {
                                   InventoryMovementId movementId);
     InventoryItem markStockAsDamaged(Seller seller, InventoryItem inventoryItem);
     List<InventoryItem> consultStockOfMyProduct(Seller seller, ProductId productId);
+    InventoryItem consultStockRecord(Seller seller, InventoryItemId inventoryItemId);
 }
 ```
 
@@ -154,6 +156,12 @@ public interface SellerPort {
 | `consultMyWarehouse(s)` | RG-03, RD-ROL-03 | `ConsultWarehouseService` |
 | `receiveStock` / `adjustStock` | RD-INV-02, RD-INV-04 | `ReceiveStockService`, `AdjustStockService` |
 | `markStockAsDamaged` | RD-INV-03, RD-VO-12 | `MarkDamagedService` |
+| `consultMyProduct` | RD-CAT-01, RG-03 | `ValidateSellerOwnershipService` |
+| `consultStockRecord` | RD-ROL-06 | `ValidateRoleAuthorizationService` |
+
+`consultMyProduct` valida la pertenencia **mientras carga**: un vendedor que pida el producto de
+otro recibe `ProductNotOwnedException` en la resolución, no en la operación posterior. Es lo que
+permite que `SellerRestController` no necesite ningún puerto de salida (RD-PIN-06).
 
 ---
 
@@ -180,8 +188,23 @@ public interface LogisticOperatorPort {
     Shipment dispatchShipment(User<?> operator, Shipment shipment, Order order);
     Shipment confirmShipmentDelivery(User<?> operator, Shipment shipment, Order order);
     List<Order> consultOrdersByStatus(User<?> operator, OrderStatus status);
+
+    // Resolución y entrada por identificador (RD-PIN-06)
+    Order consultOrder(User<?> operator, OrderId orderId);
+    InventoryItem consultStockRecord(User<?> operator, InventoryItemId inventoryItemId);
+    InventoryMovement restockReturn(User<?> operator, ProductReturnId returnId, InventoryItemId inventoryItemId,
+                                    InventoryMovementId movementId);
+    Shipment packShipment(User<?> operator, ShipmentId shipmentId, OrderId orderId,
+                          WarehouseId originWarehouseId, Address deliveryAddress);
+    Shipment dispatchShipment(User<?> operator, ShipmentId shipmentId, OrderId orderId);
+    Shipment confirmShipmentDelivery(User<?> operator, ShipmentId shipmentId, OrderId orderId);
 }
 ```
+
+Las cuatro sobrecargas por identificador no son azúcar sintáctico del adaptador: `packShipment`
+decide si reutiliza el envío existente o lo abre, y recopila los productos del pedido para
+determinar si requiere logística (RD-LOG-01). Esa decisión es del caso de uso. Mientras vivía en el
+controlador, el adaptador REST tenía que conocer cinco puertos de salida.
 
 | Método | Reglas aplicadas | Servicios de dominio |
 |---|---|---|
@@ -192,6 +215,7 @@ public interface LogisticOperatorPort {
 | `packShipment` | RD-LOG-01, RD-PED-03 | `PackShipmentService` |
 | `dispatchShipment` | RD-PED-01, RD-LOG-02 | `DispatchShipmentService` |
 | `confirmShipmentDelivery` | RD-PED-01, RD-PED-02 | `ConfirmShipmentDeliveryService` |
+| `consultOrder` / `consultStockRecord` | RD-ROL-06 | `ValidateRoleAuthorizationService` |
 
 ---
 
@@ -204,11 +228,15 @@ public interface AdministratorPort {
     Seller consultSeller(User<?> administrator, SellerId sellerId);
     List<Seller> consultSellers(User<?> administrator);
 
+    User<?> consultUser(User<?> administrator, Identifier userId);
     User<?> blockUser(User<?> administrator, User<?> target);
     User<?> activateUser(User<?> administrator, User<?> target);
     User<?> changeUserRole(User<?> administrator, User<?> target, UserRole newRole);
 
     MarketplaceWarehouse registerMarketplaceWarehouse(User<?> administrator, WarehouseId warehouseId);
+
+    Invoice issueInvoice(User<?> administrator, OrderId orderId, InvoiceId invoiceId);
+    Invoice consultInvoice(User<?> administrator, InvoiceId invoiceId);
 
     Refund issueRefund(User<?> administrator, ProductReturn productReturn, Invoice invoice, Money amount,
                        RefundId refundId);
@@ -224,6 +252,14 @@ public interface AdministratorPort {
 | `changeUserRole` | RG-02, RD-ROL-02 | `ChangeUserRoleService` |
 | `registerMarketplaceWarehouse` | RD-ROL-06 | `RegisterMarketplaceWarehouseService` |
 | `issueRefund` | RD-POS-02, RD-ROL-06 | `IssueRefundService` |
+| `consultUser` | RG-01, RD-ROL-06 | `ValidateRoleAuthorizationService` |
+| `issueInvoice` | RD-FAC-01 | `IssueInvoiceService` |
+| `consultInvoice` | RD-FAC-01, RD-ROL-06 | `ValidateRoleAuthorizationService` |
+
+La facturación corresponde al vendedor y al administrador (RD-FAC-01). Figura aquí para que el
+administrador no tenga que salirse de su puerto; el servicio detrás sigue validando el rol, que es
+donde vive la regla. `consultUser` está restringido a `ADMINISTRATOR` porque solo él gestiona el
+estado y el rol de los usuarios: no es una búsqueda libre.
 
 ---
 
@@ -265,3 +301,10 @@ public interface SupervisorPort {
 - **RD-PIN-04.** Un puerto no expone operaciones fuera del alcance de su rol: la matriz de
   responsabilidades (RD-ROL-06) es la que decide qué método vive en qué puerto.
 - **RD-PIN-05.** Las interfaces no declaran dependencias de framework: son contratos de dominio puro.
+- **RD-PIN-06.** Cada puerto expone la **resolución por identificador** de las entidades sobre las
+  que opera, con la validación de rol y pertenencia incluida en la carga. Sin esto, el adaptador que
+  recibe un identificador por HTTP no tiene más salida que inyectar un puerto de salida, lo que
+  rompería RD-REST-02 y haría que la capa de entrega conociera la de persistencia. Donde el caso de
+  uso tenga que *decidir* algo para resolver —abrir un envío que no existe, recopilar los productos
+  de un pedido— el puerto expone una sobrecarga que acepta identificadores y toma esa decisión
+  adentro, nunca en el controlador.

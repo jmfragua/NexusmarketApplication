@@ -17,8 +17,12 @@ Hay exactamente **seis**, uno por puerto de entrada, es decir uno por rol del si
 - **RD-UC-01.** Un caso de uso **no contiene regla de negocio alguna**. Cada método es una
   delegación de una línea al servicio de dominio que posee la regla. Si un método de un caso de uso
   crece más allá de eso, es señal de que falta un servicio de dominio.
-- **RD-UC-02.** Los casos de uso inyectan **servicios de dominio**, no puertos de salida. La única
-  excepción documentada está en `BuyerUseCaseImpl` (ver §4).
+- **RD-UC-02.** Los casos de uso inyectan **servicios de dominio** para todo lo que decide algo.
+  Inyectan además puertos de salida para **resolver entidades por identificador** (RD-PIN-06) y para
+  las tres operaciones de `BuyerPort` que no tienen servicio detrás (§4). Esa es la frontera: un
+  puerto de salida en un caso de uso resuelve o guarda; nunca sustituye a un servicio que posee una
+  regla. El caso de uso es el lugar legítimo para esto, porque está del lado del dominio en la
+  jerarquía de capas; un controlador no lo está (RD-REST-02).
 - **RD-UC-03.** Son el único lugar anotado con `@Service` en toda la ruta que va del controlador al
   modelo: los servicios de dominio se exponen como beans desde `infrastructure/config`, nunca con
   anotaciones propias.
@@ -27,14 +31,20 @@ Hay exactamente **seis**, uno por puerto de entrada, es decir uno por rol del si
 
 ## 3. Catálogo de casos de uso
 
-| Clase | Implementa | Servicios que inyecta |
-|---|---|---|
-| `PublicAccessUseCaseImpl` | `PublicAccessPort` | 3 |
-| `BuyerUseCaseImpl` | `BuyerPort` | 10 + 2 puertos de salida |
-| `SellerUseCaseImpl` | `SellerPort` | 12 |
-| `LogisticOperatorUseCaseImpl` | `LogisticOperatorPort` | 11 |
-| `AdministratorUseCaseImpl` | `AdministratorPort` | 9 |
-| `SupervisorUseCaseImpl` | `SupervisorPort` | 4 |
+| Clase | Implementa | Servicios de dominio | Puertos de salida (resolución) |
+|---|---|---|---|
+| `PublicAccessUseCaseImpl` | `PublicAccessPort` | 3 | — |
+| `BuyerUseCaseImpl` | `BuyerPort` | 11 | 2 |
+| `SellerUseCaseImpl` | `SellerPort` | 14 | 2 |
+| `LogisticOperatorUseCaseImpl` | `LogisticOperatorPort` | 12 | 5 |
+| `AdministratorUseCaseImpl` | `AdministratorPort` | 11 | 3 |
+| `SupervisorUseCaseImpl` | `SupervisorPort` | 4 | — |
+
+Los puertos de salida de la última columna cubren exactamente la resolución por identificador que
+exige RD-PIN-06. `LogisticOperatorUseCaseImpl` necesita cinco porque las sobrecargas de envío
+resuelven pedido, envío, producto, registro de stock y devolución, y además **deciden**: abrir el
+envío si no existe y recopilar los productos del pedido para determinar si requiere logística
+(RD-LOG-01). Esa decisión estuvo un tiempo en el controlador, que es lo que RD-REST-02 prohíbe.
 
 ### 3.1 Ejemplo del patrón
 

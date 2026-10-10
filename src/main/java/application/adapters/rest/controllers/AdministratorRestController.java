@@ -6,6 +6,7 @@ import application.adapters.rest.dtos.requests.IssueRefundRequest;
 import application.adapters.rest.dtos.requests.RegisterSellerRequest;
 import application.adapters.rest.dtos.requests.RegisterWarehouseRequest;
 import application.adapters.rest.dtos.responses.InvoiceResponse;
+import application.adapters.rest.dtos.responses.PageResponse;
 import application.adapters.rest.dtos.responses.ProductReturnResponse;
 import application.adapters.rest.dtos.responses.RefundResponse;
 import application.adapters.rest.dtos.responses.SellerResponse;
@@ -14,19 +15,10 @@ import application.adapters.rest.dtos.responses.WarehouseResponse;
 import application.adapters.rest.mappers.AfterSalesRestMapper;
 import application.adapters.rest.mappers.InventoryRestMapper;
 import application.adapters.rest.mappers.UserRestMapper;
-import application.domain.exceptions.EntityNotFoundException;
-import application.domain.models.Invoice;
-import application.domain.models.Order;
-import application.domain.models.ProductReturn;
 import application.domain.models.Seller;
 import application.domain.models.SellerWarehouse;
 import application.domain.models.User;
 import application.domain.ports.in.AdministratorPort;
-import application.domain.ports.out.InvoiceRepositoryPort;
-import application.domain.ports.out.OrderRepositoryPort;
-import application.domain.ports.out.ProductReturnRepositoryPort;
-import application.domain.ports.out.UserRepositoryPort;
-import application.domain.services.invoice.IssueInvoiceService;
 import application.domain.valuesObjects.EmailAddress;
 import application.domain.valuesObjects.FullName;
 import application.domain.valuesObjects.IdentityDocument;
@@ -43,7 +35,6 @@ import application.domain.valuesObjects.WarehouseId;
 import application.infrastructure.security.CredentialService;
 import application.infrastructure.security.DomainUserPrincipal;
 import jakarta.validation.Valid;
-import java.util.List;
 import java.util.Objects;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -54,6 +45,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -66,31 +58,11 @@ public class AdministratorRestController {
 
     private final AdministratorPort administratorPort;
 
-    private final IssueInvoiceService issueInvoiceService;
-
-    private final UserRepositoryPort userRepositoryPort;
-
-    private final OrderRepositoryPort orderRepositoryPort;
-
-    private final InvoiceRepositoryPort invoiceRepositoryPort;
-
-    private final ProductReturnRepositoryPort productReturnRepositoryPort;
-
     private final CredentialService credentialService;
 
     public AdministratorRestController(AdministratorPort administratorPort,
-                                       IssueInvoiceService issueInvoiceService,
-                                       UserRepositoryPort userRepositoryPort,
-                                       OrderRepositoryPort orderRepositoryPort,
-                                       InvoiceRepositoryPort invoiceRepositoryPort,
-                                       ProductReturnRepositoryPort productReturnRepositoryPort,
                                        CredentialService credentialService) {
         this.administratorPort = Objects.requireNonNull(administratorPort);
-        this.issueInvoiceService = Objects.requireNonNull(issueInvoiceService);
-        this.userRepositoryPort = Objects.requireNonNull(userRepositoryPort);
-        this.orderRepositoryPort = Objects.requireNonNull(orderRepositoryPort);
-        this.invoiceRepositoryPort = Objects.requireNonNull(invoiceRepositoryPort);
-        this.productReturnRepositoryPort = Objects.requireNonNull(productReturnRepositoryPort);
         this.credentialService = Objects.requireNonNull(credentialService);
     }
 
@@ -120,11 +92,13 @@ public class AdministratorRestController {
     }
 
     @GetMapping("/sellers")
-    public ResponseEntity<List<SellerResponse>> consultSellers(
-            @AuthenticationPrincipal DomainUserPrincipal principal) {
-        return ResponseEntity.ok(administratorPort.consultSellers(principal.user()).stream()
+    public ResponseEntity<PageResponse<SellerResponse>> consultSellers(
+            @AuthenticationPrincipal DomainUserPrincipal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(PageResponse.of(administratorPort.consultSellers(principal.user()).stream()
                 .map(UserRestMapper::toResponse)
-                .toList());
+                .toList(), page, size));
     }
 
     @GetMapping("/sellers/{sellerId}")
@@ -140,14 +114,14 @@ public class AdministratorRestController {
     public ResponseEntity<UserResponse> blockUser(@AuthenticationPrincipal DomainUserPrincipal principal,
                                                   @PathVariable String userId) {
         return ResponseEntity.ok(
-                UserRestMapper.toResponse(administratorPort.blockUser(principal.user(), userOf(userId))));
+                UserRestMapper.toResponse(administratorPort.blockUser(principal.user(), userOf(principal, userId))));
     }
 
     @PostMapping("/users/{userId}/activation")
     public ResponseEntity<UserResponse> activateUser(@AuthenticationPrincipal DomainUserPrincipal principal,
                                                      @PathVariable String userId) {
         return ResponseEntity.ok(
-                UserRestMapper.toResponse(administratorPort.activateUser(principal.user(), userOf(userId))));
+                UserRestMapper.toResponse(administratorPort.activateUser(principal.user(), userOf(principal, userId))));
     }
 
     @PutMapping("/users/{userId}/role")
@@ -155,7 +129,7 @@ public class AdministratorRestController {
                                                        @PathVariable String userId,
                                                        @Valid @RequestBody ChangeUserRoleRequest request) {
         return ResponseEntity.ok(UserRestMapper.toResponse(administratorPort.changeUserRole(
-                principal.user(), userOf(userId), UserRole.valueOf(request.role()))));
+                principal.user(), userOf(principal, userId), UserRole.valueOf(request.role()))));
     }
 
     // Marketplace warehouses
@@ -172,17 +146,16 @@ public class AdministratorRestController {
     // Invoicing
 
     /**
-     * Invoicing is reachable by the administrator and the seller (RD-FAC-01), but it is not part of
-     * {@code AdministratorPort}, so the domain service is injected directly. The service still
+     * Invoicing is reachable by the administrator and the seller (RD-FAC-01); the entry port exposes
+     * it so the administrator never has to step outside it, and the domain service behind it still
      * validates the role, which is where the rule lives.
      */
     @PostMapping("/invoices")
     public ResponseEntity<InvoiceResponse> issueInvoice(@AuthenticationPrincipal DomainUserPrincipal principal,
                                                         @Valid @RequestBody IssueInvoiceRequest request) {
-        Order order = orderRepositoryPort.findById(OrderId.of(request.orderId()))
-                .orElseThrow(() -> new EntityNotFoundException("order", OrderId.of(request.orderId())));
-        Invoice invoice = issueInvoiceService.issue(principal.user(), order, InvoiceId.of(request.invoiceId()));
-        return ResponseEntity.status(HttpStatus.CREATED).body(AfterSalesRestMapper.toResponse(invoice));
+        return ResponseEntity.status(HttpStatus.CREATED).body(AfterSalesRestMapper.toResponse(
+                administratorPort.issueInvoice(principal.user(), OrderId.of(request.orderId()),
+                        InvoiceId.of(request.invoiceId()))));
     }
 
     // After sales
@@ -197,28 +170,25 @@ public class AdministratorRestController {
     @PostMapping("/refunds")
     public ResponseEntity<RefundResponse> issueRefund(@AuthenticationPrincipal DomainUserPrincipal principal,
                                                       @Valid @RequestBody IssueRefundRequest request) {
-        ProductReturn productReturn = productReturnRepositoryPort
-                .findById(ProductReturnId.of(request.productReturnId()))
-                .orElseThrow(() -> new EntityNotFoundException("product return",
-                        ProductReturnId.of(request.productReturnId())));
-        Invoice invoice = invoiceRepositoryPort.findById(InvoiceId.of(request.invoiceId()))
-                .orElseThrow(() -> new EntityNotFoundException("invoice", InvoiceId.of(request.invoiceId())));
         RefundResponse response = AfterSalesRestMapper.toResponse(administratorPort.issueRefund(
-                principal.user(), productReturn, invoice,
+                principal.user(),
+                administratorPort.consultReturn(principal.user(), ProductReturnId.of(request.productReturnId())),
+                administratorPort.consultInvoice(principal.user(), InvoiceId.of(request.invoiceId())),
                 Money.of(request.amount(), request.currency()), RefundId.of(request.refundId())));
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/refunds")
-    public ResponseEntity<List<RefundResponse>> consultRefunds(
-            @AuthenticationPrincipal DomainUserPrincipal principal) {
-        return ResponseEntity.ok(administratorPort.consultRefunds(principal.user()).stream()
+    public ResponseEntity<PageResponse<RefundResponse>> consultRefunds(
+            @AuthenticationPrincipal DomainUserPrincipal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(PageResponse.of(administratorPort.consultRefunds(principal.user()).stream()
                 .map(AfterSalesRestMapper::toResponse)
-                .toList());
+                .toList(), page, size));
     }
 
-    private User<?> userOf(String userId) {
-        return userRepositoryPort.findByIdentifier(UserId.of(userId))
-                .orElseThrow(() -> new EntityNotFoundException("user", UserId.of(userId)));
+    private User<?> userOf(DomainUserPrincipal principal, String userId) {
+        return administratorPort.consultUser(principal.user(), UserId.of(userId));
     }
 }

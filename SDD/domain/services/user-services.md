@@ -230,17 +230,36 @@ User<?> changeRole(User<?> actor, User<?> target, UserRole newRole)
 
 1. Actor activo, rol `ADMINISTRATOR`.
 2. `newRole` no puede ser nulo: el rol es obligatorio (RG-02).
+3. La reasignación no puede cruzar una especialización (RD-ROL-08). La guarda vive en
+   `User.changeRole`, no aquí: es un invariante del modelo, y el servicio no reimplementa reglas que
+   la entidad ya hace cumplir.
 
 ## Regla de unicidad del rol
 
 El rol sigue siendo **único por usuario** porque el atributo admite un solo valor: no existe una
 colección de roles. Cambiar el rol sustituye el anterior; no acumula (RD-ROL-02).
 
+## Qué cambios son posibles
+
+| De | A | Resultado |
+|---|---|---|
+| `LOGISTICS_OPERATOR` / `ADMINISTRATOR` / `SUPERVISOR` | entre ellos | Permitido: los tres viven en `StaffUser` y el rol es un atributo |
+| `BUYER` o `SELLER` | cualquier otro | `InvalidRoleChangeException` |
+| cualquiera | `BUYER` o `SELLER` | `InvalidRoleChangeException` |
+| cualquiera | el mismo rol | Permitido, sin efecto |
+
+Un comprador no se convierte en administrador cambiándole el atributo: su clase es la que lleva
+direcciones, estado comercial y carrito, y un vendedor solo existe incorporado con su primera
+bodega (RD-ROL-05). Si el servicio lo aceptara, la columna `role` diría una cosa y el discriminador
+de persistencia otra; al recargar, el discriminador gana y el cambio se pierde en silencio. Era
+exactamente ese el defecto, y está fijado en `RegressionOfKnownDefectsTest` (Defecto 5).
+
 ## Excepciones
 
 | Excepción | Causa |
 |---|---|
 | `UnauthorizedOperationException` | El actor no es administrador |
+| `InvalidRoleChangeException` | La reasignación cruza una especialización (RD-ROL-08) |
 | `NullPointerException` | El rol es nulo (invariante del modelo) |
 
 ---

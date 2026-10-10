@@ -1,13 +1,20 @@
 package application.adapters.useCases;
 
+import application.domain.exceptions.EntityNotFoundException;
 import application.domain.models.Invoice;
 import application.domain.models.MarketplaceWarehouse;
+import application.domain.models.Order;
 import application.domain.models.ProductReturn;
 import application.domain.models.Refund;
 import application.domain.models.Seller;
 import application.domain.models.SellerWarehouse;
 import application.domain.models.User;
 import application.domain.ports.in.AdministratorPort;
+import application.domain.ports.out.InvoiceRepositoryPort;
+import application.domain.ports.out.OrderRepositoryPort;
+import application.domain.ports.out.UserRepositoryPort;
+import application.domain.services.authorization.ValidateRoleAuthorizationService;
+import application.domain.services.invoice.IssueInvoiceService;
 import application.domain.services.refund.ConsultRefundService;
 import application.domain.services.refund.IssueRefundService;
 import application.domain.services.returns.ConsultReturnService;
@@ -19,8 +26,11 @@ import application.domain.services.user.ChangeUserRoleService;
 import application.domain.services.warehouse.RegisterMarketplaceWarehouseService;
 import application.domain.valuesObjects.EmailAddress;
 import application.domain.valuesObjects.FullName;
+import application.domain.valuesObjects.Identifier;
 import application.domain.valuesObjects.IdentityDocument;
+import application.domain.valuesObjects.InvoiceId;
 import application.domain.valuesObjects.Money;
+import application.domain.valuesObjects.OrderId;
 import application.domain.valuesObjects.ProductReturnId;
 import application.domain.valuesObjects.RefundId;
 import application.domain.valuesObjects.SellerId;
@@ -55,6 +65,16 @@ public class AdministratorUseCaseImpl implements AdministratorPort {
 
     private final ConsultReturnService consultReturnService;
 
+    private final IssueInvoiceService issueInvoiceService;
+
+    private final ValidateRoleAuthorizationService validateRoleAuthorizationService;
+
+    private final UserRepositoryPort userRepositoryPort;
+
+    private final OrderRepositoryPort orderRepositoryPort;
+
+    private final InvoiceRepositoryPort invoiceRepositoryPort;
+
     public AdministratorUseCaseImpl(RegisterSellerService registerSellerService,
                                     ConsultSellerService consultSellerService,
                                     BlockUserService blockUserService,
@@ -63,7 +83,12 @@ public class AdministratorUseCaseImpl implements AdministratorPort {
                                     RegisterMarketplaceWarehouseService registerMarketplaceWarehouseService,
                                     IssueRefundService issueRefundService,
                                     ConsultRefundService consultRefundService,
-                                    ConsultReturnService consultReturnService) {
+                                    ConsultReturnService consultReturnService,
+                                    IssueInvoiceService issueInvoiceService,
+                                    ValidateRoleAuthorizationService validateRoleAuthorizationService,
+                                    UserRepositoryPort userRepositoryPort,
+                                    OrderRepositoryPort orderRepositoryPort,
+                                    InvoiceRepositoryPort invoiceRepositoryPort) {
         this.registerSellerService = Objects.requireNonNull(registerSellerService);
         this.consultSellerService = Objects.requireNonNull(consultSellerService);
         this.blockUserService = Objects.requireNonNull(blockUserService);
@@ -73,6 +98,44 @@ public class AdministratorUseCaseImpl implements AdministratorPort {
         this.issueRefundService = Objects.requireNonNull(issueRefundService);
         this.consultRefundService = Objects.requireNonNull(consultRefundService);
         this.consultReturnService = Objects.requireNonNull(consultReturnService);
+        this.issueInvoiceService = Objects.requireNonNull(issueInvoiceService);
+        this.validateRoleAuthorizationService = Objects.requireNonNull(validateRoleAuthorizationService);
+        this.userRepositoryPort = Objects.requireNonNull(userRepositoryPort);
+        this.orderRepositoryPort = Objects.requireNonNull(orderRepositoryPort);
+        this.invoiceRepositoryPort = Objects.requireNonNull(invoiceRepositoryPort);
+    }
+
+    /**
+     * Only the administrator manages the status and the role of the users (RG-01, RD-ROL-06), so the
+     * resolution is gated by that role instead of being a free lookup.
+     */
+    @Override
+    public User<?> consultUser(User<?> administrator, Identifier userId) {
+        validateRoleAuthorizationService.validate(administrator, "consult user", UserRole.ADMINISTRATOR);
+        return userRepositoryPort.findByIdentifier(userId)
+                .orElseThrow(() -> new EntityNotFoundException("user", userId));
+    }
+
+    /**
+     * The role is validated before the order is resolved, not only by {@code IssueInvoiceService}
+     * afterwards: otherwise an actor who may not invoice would still learn from the status code
+     * whether the order exists (RD-ROL-03).
+     */
+    @Override
+    public Invoice issueInvoice(User<?> administrator, OrderId orderId, InvoiceId invoiceId) {
+        validateRoleAuthorizationService.validate(administrator, "issue invoice", UserRole.SELLER,
+                UserRole.ADMINISTRATOR);
+        Order order = orderRepositoryPort.findById(orderId)
+                .orElseThrow(() -> new EntityNotFoundException("order", orderId));
+        return issueInvoiceService.issue(administrator, order, invoiceId);
+    }
+
+    @Override
+    public Invoice consultInvoice(User<?> administrator, InvoiceId invoiceId) {
+        validateRoleAuthorizationService.validate(administrator, "consult invoice", UserRole.SELLER,
+                UserRole.ADMINISTRATOR, UserRole.SUPERVISOR);
+        return invoiceRepositoryPort.findById(invoiceId)
+                .orElseThrow(() -> new EntityNotFoundException("invoice", invoiceId));
     }
 
     @Override

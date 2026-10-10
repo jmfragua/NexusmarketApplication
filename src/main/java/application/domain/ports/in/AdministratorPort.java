@@ -9,7 +9,10 @@ import application.domain.models.SellerWarehouse;
 import application.domain.models.User;
 import application.domain.valuesObjects.EmailAddress;
 import application.domain.valuesObjects.FullName;
+import application.domain.valuesObjects.Identifier;
 import application.domain.valuesObjects.IdentityDocument;
+import application.domain.valuesObjects.InvoiceId;
+import application.domain.valuesObjects.OrderId;
 import application.domain.valuesObjects.Money;
 import application.domain.valuesObjects.ProductReturnId;
 import application.domain.valuesObjects.RefundId;
@@ -44,6 +47,11 @@ public interface AdministratorPort {
 
     // Operational status and role of the users
 
+    /**
+     * Resolves a user by its identifier, which the status and role operations act upon.
+     */
+    User<?> consultUser(User<?> administrator, Identifier userId);
+
     User<?> blockUser(User<?> administrator, User<?> target);
 
     User<?> activateUser(User<?> administrator, User<?> target);
@@ -55,6 +63,17 @@ public interface AdministratorPort {
     MarketplaceWarehouse registerMarketplaceWarehouse(User<?> administrator, WarehouseId warehouseId);
 
     // After sales
+
+    /**
+     * Issues the invoice of a paid order (RD-FAC-01). Shared with the seller, but reachable here so
+     * the administrator never has to step outside this port.
+     */
+    Invoice issueInvoice(User<?> administrator, OrderId orderId, InvoiceId invoiceId);
+
+    /**
+     * Resolves an invoice by its identifier, which a refund is applied over.
+     */
+    Invoice consultInvoice(User<?> administrator, InvoiceId invoiceId);
 
     Refund issueRefund(User<?> administrator, ProductReturn productReturn, Invoice invoice, Money amount,
                        RefundId refundId);

@@ -298,6 +298,17 @@ vendedor que solo el administrador puede incorporar— y construirlos por esta v
 
 - **RD-ROL-07.** Los roles sin especialización propia se materializan en `StaffUser`, que no añade
   atributos y prohíbe los roles que sí la tienen.
+- **RD-ROL-08.** Un cambio de rol solo es válido **entre roles sin especialización propia**
+  (`LOGISTICS_OPERATOR`, `ADMINISTRATOR`, `SUPERVISOR`), o hacia el mismo rol. Reasignar un
+  `BUYER` o un `SELLER` a otro rol —o convertir a alguien en vendedor cambiándole el atributo— se
+  rechaza con `InvalidRoleChangeException`.
+
+  **Por qué.** `Buyer` lleva direcciones, estado comercial y carrito; `Seller` solo existe
+  incorporado por un administrador junto con su primera bodega (RD-ROL-05). El rol de esas dos
+  clases no es un atributo libre: lo fija su constructor. La persistencia lo hace evidente —el
+  discriminador almacenado, no la columna `role`, decide qué entidad se reconstruye al recargar—, así
+  que aceptar el cambio lo daría por bueno y lo perdería en el siguiente `findById`. Permitirlo
+  además violaría RD-ROL-05, porque permitiría fabricar un vendedor sin incorporación ni bodega.
 
 ---
 

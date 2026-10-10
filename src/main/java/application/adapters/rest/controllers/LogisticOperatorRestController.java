@@ -6,6 +6,7 @@ import application.adapters.rest.dtos.requests.StockMovementRequest;
 import application.adapters.rest.dtos.responses.InventoryItemResponse;
 import application.adapters.rest.dtos.responses.InventoryMovementResponse;
 import application.adapters.rest.dtos.responses.OrderResponse;
+import application.adapters.rest.dtos.responses.PageResponse;
 import application.adapters.rest.dtos.responses.ShipmentResponse;
 import application.adapters.rest.dtos.responses.WarehouseResponse;
 import application.adapters.rest.mappers.AfterSalesRestMapper;
@@ -15,15 +16,7 @@ import application.domain.exceptions.EntityNotFoundException;
 import application.domain.models.InventoryItem;
 import application.domain.models.Order;
 import application.domain.models.OrderLine;
-import application.domain.models.Product;
-import application.domain.models.ProductReturn;
-import application.domain.models.Shipment;
 import application.domain.ports.in.LogisticOperatorPort;
-import application.domain.ports.out.InventoryItemRepositoryPort;
-import application.domain.ports.out.OrderRepositoryPort;
-import application.domain.ports.out.ProductRepositoryPort;
-import application.domain.ports.out.ProductReturnRepositoryPort;
-import application.domain.ports.out.ShipmentRepositoryPort;
 import application.domain.valuesObjects.Address;
 import application.domain.valuesObjects.InventoryItemId;
 import application.domain.valuesObjects.InventoryMovementId;
@@ -35,7 +28,6 @@ import application.domain.valuesObjects.ShipmentId;
 import application.domain.valuesObjects.WarehouseId;
 import application.infrastructure.security.DomainUserPrincipal;
 import jakarta.validation.Valid;
-import java.util.List;
 import java.util.Objects;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -51,9 +43,9 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Logistics operator endpoints: warehouse stock movements and the shipment lifecycle.
  *
- * <p>As in the seller controller, output ports are used only to resolve entities from the
- * identifiers in the request; the entry port and its domain services remain the only place where
- * anything is decided or validated (RD-ROL-06).</p>
+ * <p>As in the seller controller, the identifiers in the request are resolved through the entry
+ * port, which validates the role while loading. The controller only translates HTTP to the port and
+ * back: nothing is decided or looked up here (RD-ROL-06).</p>
  */
 @RestController
 @RequestMapping("/api/v1/logistics")
@@ -61,48 +53,32 @@ public class LogisticOperatorRestController {
 
     private final LogisticOperatorPort logisticOperatorPort;
 
-    private final OrderRepositoryPort orderRepositoryPort;
-
-    private final InventoryItemRepositoryPort inventoryItemRepositoryPort;
-
-    private final ShipmentRepositoryPort shipmentRepositoryPort;
-
-    private final ProductRepositoryPort productRepositoryPort;
-
-    private final ProductReturnRepositoryPort productReturnRepositoryPort;
-
-    public LogisticOperatorRestController(LogisticOperatorPort logisticOperatorPort,
-                                          OrderRepositoryPort orderRepositoryPort,
-                                          InventoryItemRepositoryPort inventoryItemRepositoryPort,
-                                          ShipmentRepositoryPort shipmentRepositoryPort,
-                                          ProductRepositoryPort productRepositoryPort,
-                                          ProductReturnRepositoryPort productReturnRepositoryPort) {
+    public LogisticOperatorRestController(LogisticOperatorPort logisticOperatorPort) {
         this.logisticOperatorPort = Objects.requireNonNull(logisticOperatorPort);
-        this.orderRepositoryPort = Objects.requireNonNull(orderRepositoryPort);
-        this.inventoryItemRepositoryPort = Objects.requireNonNull(inventoryItemRepositoryPort);
-        this.shipmentRepositoryPort = Objects.requireNonNull(shipmentRepositoryPort);
-        this.productRepositoryPort = Objects.requireNonNull(productRepositoryPort);
-        this.productReturnRepositoryPort = Objects.requireNonNull(productReturnRepositoryPort);
     }
 
     // Warehouses and stock
 
     @GetMapping("/warehouses")
-    public ResponseEntity<List<WarehouseResponse>> consultWarehouses(
-            @AuthenticationPrincipal DomainUserPrincipal principal) {
-        return ResponseEntity.ok(logisticOperatorPort.consultWarehouses(principal.user()).stream()
+    public ResponseEntity<PageResponse<WarehouseResponse>> consultWarehouses(
+            @AuthenticationPrincipal DomainUserPrincipal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(PageResponse.of(logisticOperatorPort.consultWarehouses(principal.user()).stream()
                 .map(InventoryRestMapper::toResponse)
-                .toList());
+                .toList(), page, size));
     }
 
     @GetMapping("/warehouses/{warehouseId}/stock")
-    public ResponseEntity<List<InventoryItemResponse>> consultStockOfWarehouse(
+    public ResponseEntity<PageResponse<InventoryItemResponse>> consultStockOfWarehouse(
             @AuthenticationPrincipal DomainUserPrincipal principal,
-            @PathVariable String warehouseId) {
-        return ResponseEntity.ok(
+            @PathVariable String warehouseId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(PageResponse.of(
                 logisticOperatorPort.consultStockOfWarehouse(principal.user(), WarehouseId.of(warehouseId)).stream()
                         .map(InventoryRestMapper::toResponse)
-                        .toList());
+                        .toList(), page, size));
     }
 
     @PostMapping("/stock/receipts")
@@ -110,8 +86,8 @@ public class LogisticOperatorRestController {
             @AuthenticationPrincipal DomainUserPrincipal principal,
             @Valid @RequestBody StockMovementRequest request) {
         InventoryMovementResponse response = InventoryRestMapper.toResponse(logisticOperatorPort.receiveStock(
-                principal.user(), stockOf(request.inventoryItemId()), Quantity.of(request.quantity()),
-                InventoryMovementId.of(request.movementId())));
+                principal.user(), stockOf(principal, request.inventoryItemId()),
+                Quantity.of(request.quantity()), InventoryMovementId.of(request.movementId())));
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -120,8 +96,9 @@ public class LogisticOperatorRestController {
             @AuthenticationPrincipal DomainUserPrincipal principal,
             @Valid @RequestBody StockLineMovementRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(InventoryRestMapper.toResponse(
-                logisticOperatorPort.reserveStock(principal.user(), lineOf(request),
-                        stockOf(request.inventoryItemId()), InventoryMovementId.of(request.movementId()))));
+                logisticOperatorPort.reserveStock(principal.user(), lineOf(principal, request),
+                        stockOf(principal, request.inventoryItemId()),
+                        InventoryMovementId.of(request.movementId()))));
     }
 
     @PostMapping("/stock/releases")
@@ -129,8 +106,9 @@ public class LogisticOperatorRestController {
             @AuthenticationPrincipal DomainUserPrincipal principal,
             @Valid @RequestBody StockLineMovementRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(InventoryRestMapper.toResponse(
-                logisticOperatorPort.releaseReservation(principal.user(), lineOf(request),
-                        stockOf(request.inventoryItemId()), InventoryMovementId.of(request.movementId()))));
+                logisticOperatorPort.releaseReservation(principal.user(), lineOf(principal, request),
+                        stockOf(principal, request.inventoryItemId()),
+                        InventoryMovementId.of(request.movementId()))));
     }
 
     @PostMapping("/stock/sale-outbounds")
@@ -138,8 +116,9 @@ public class LogisticOperatorRestController {
             @AuthenticationPrincipal DomainUserPrincipal principal,
             @Valid @RequestBody StockLineMovementRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(InventoryRestMapper.toResponse(
-                logisticOperatorPort.issueStockForSale(principal.user(), lineOf(request),
-                        stockOf(request.inventoryItemId()), InventoryMovementId.of(request.movementId()))));
+                logisticOperatorPort.issueStockForSale(principal.user(), lineOf(principal, request),
+                        stockOf(principal, request.inventoryItemId()),
+                        InventoryMovementId.of(request.movementId()))));
     }
 
     @PostMapping("/stock/returns/{returnId}")
@@ -148,11 +127,9 @@ public class LogisticOperatorRestController {
             @PathVariable String returnId,
             @RequestParam String inventoryItemId,
             @RequestParam String movementId) {
-        ProductReturn productReturn = productReturnRepositoryPort.findById(ProductReturnId.of(returnId))
-                .orElseThrow(() -> new EntityNotFoundException("product return", ProductReturnId.of(returnId)));
         return ResponseEntity.status(HttpStatus.CREATED).body(InventoryRestMapper.toResponse(
-                logisticOperatorPort.restockReturn(principal.user(), productReturn, stockOf(inventoryItemId),
-                        InventoryMovementId.of(movementId))));
+                logisticOperatorPort.restockReturn(principal.user(), ProductReturnId.of(returnId),
+                        InventoryItemId.of(inventoryItemId), InventoryMovementId.of(movementId))));
     }
 
     // Shipments
@@ -160,73 +137,50 @@ public class LogisticOperatorRestController {
     @PostMapping("/shipments/packaging")
     public ResponseEntity<ShipmentResponse> packShipment(@AuthenticationPrincipal DomainUserPrincipal principal,
                                                          @Valid @RequestBody ShipmentActionRequest request) {
-        Order order = orderOf(request.orderId());
-        Shipment shipment = shipmentRepositoryPort.findById(ShipmentId.of(request.shipmentId()))
-                .orElseGet(() -> new Shipment(
-                        ShipmentId.of(request.shipmentId()),
-                        order.getIdentifier(),
-                        WarehouseId.of(Objects.requireNonNull(request.warehouseId(),
-                                "the origin warehouse is mandatory to create a shipment")),
-                        Address.of(Objects.requireNonNullElse(request.deliveryAddress(),
-                                order.getDeliveryAddress().getValue()))));
-        List<Product> products = productsOf(order);
-        return ResponseEntity.ok(AfterSalesRestMapper.toResponse(
-                logisticOperatorPort.packShipment(principal.user(), shipment, order, products)));
+        return ResponseEntity.ok(AfterSalesRestMapper.toResponse(logisticOperatorPort.packShipment(
+                principal.user(),
+                ShipmentId.of(request.shipmentId()),
+                OrderId.of(request.orderId()),
+                request.warehouseId() == null ? null : WarehouseId.of(request.warehouseId()),
+                request.deliveryAddress() == null ? null : Address.of(request.deliveryAddress()))));
     }
 
     @PostMapping("/shipments/dispatches")
     public ResponseEntity<ShipmentResponse> dispatchShipment(@AuthenticationPrincipal DomainUserPrincipal principal,
                                                              @Valid @RequestBody ShipmentActionRequest request) {
         return ResponseEntity.ok(AfterSalesRestMapper.toResponse(logisticOperatorPort.dispatchShipment(
-                principal.user(), shipmentOf(request.shipmentId()), orderOf(request.orderId()))));
+                principal.user(), ShipmentId.of(request.shipmentId()), OrderId.of(request.orderId()))));
     }
 
     @PostMapping("/shipments/deliveries")
     public ResponseEntity<ShipmentResponse> confirmDelivery(@AuthenticationPrincipal DomainUserPrincipal principal,
                                                             @Valid @RequestBody ShipmentActionRequest request) {
         return ResponseEntity.ok(AfterSalesRestMapper.toResponse(logisticOperatorPort.confirmShipmentDelivery(
-                principal.user(), shipmentOf(request.shipmentId()), orderOf(request.orderId()))));
+                principal.user(), ShipmentId.of(request.shipmentId()), OrderId.of(request.orderId()))));
     }
 
     @GetMapping("/orders")
-    public ResponseEntity<List<OrderResponse>> consultOrdersByStatus(
+    public ResponseEntity<PageResponse<OrderResponse>> consultOrdersByStatus(
             @AuthenticationPrincipal DomainUserPrincipal principal,
-            @RequestParam String status) {
-        return ResponseEntity.ok(
+            @RequestParam String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(PageResponse.of(
                 logisticOperatorPort.consultOrdersByStatus(principal.user(), OrderStatus.valueOf(status)).stream()
                         .map(OrderRestMapper::toResponse)
-                        .toList());
+                        .toList(), page, size));
+    }
+
+    private InventoryItem stockOf(DomainUserPrincipal principal, String inventoryItemId) {
+        return logisticOperatorPort.consultStockRecord(principal.user(), InventoryItemId.of(inventoryItemId));
     }
 
     /**
-     * Collects the products referenced by the order, which are what decide whether it needs
-     * logistics at all: the lines carry no product type (RD-LOG-01).
+     * The line is a child of the order aggregate, so it is picked from the order the port returns
+     * rather than resolved on its own: no repository holds order lines separately.
      */
-    private List<Product> productsOf(Order order) {
-        return order.getLines().stream()
-                .map(line -> productRepositoryPort.findById(line.getProductId())
-                        .orElseThrow(() -> new EntityNotFoundException("product", line.getProductId())))
-                .toList();
-    }
-
-    private Order orderOf(String orderId) {
-        return orderRepositoryPort.findById(OrderId.of(orderId))
-                .orElseThrow(() -> new EntityNotFoundException("order", OrderId.of(orderId)));
-    }
-
-    private Shipment shipmentOf(String shipmentId) {
-        return shipmentRepositoryPort.findById(ShipmentId.of(shipmentId))
-                .orElseThrow(() -> new EntityNotFoundException("shipment", ShipmentId.of(shipmentId)));
-    }
-
-    private InventoryItem stockOf(String inventoryItemId) {
-        return inventoryItemRepositoryPort.findById(InventoryItemId.of(inventoryItemId))
-                .orElseThrow(() -> new EntityNotFoundException("stock record",
-                        InventoryItemId.of(inventoryItemId)));
-    }
-
-    private OrderLine lineOf(StockLineMovementRequest request) {
-        Order order = orderOf(request.orderId());
+    private OrderLine lineOf(DomainUserPrincipal principal, StockLineMovementRequest request) {
+        Order order = logisticOperatorPort.consultOrder(principal.user(), OrderId.of(request.orderId()));
         return order.getLines().stream()
                 .filter(line -> line.getIdentifier().getValue().equals(request.orderLineId()))
                 .findFirst()
