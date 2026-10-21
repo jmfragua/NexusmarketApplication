@@ -19,13 +19,23 @@ public class RefundJpaAdapter implements RefundRepositoryPort {
 
     private final SpringDataJpaRefundRepository refundRepository;
 
-    public RefundJpaAdapter(SpringDataJpaRefundRepository refundRepository) {
+    private final JpaInserter jpaInserter;
+
+    public RefundJpaAdapter(SpringDataJpaRefundRepository refundRepository,
+                            JpaInserter jpaInserter) {
         this.refundRepository = Objects.requireNonNull(refundRepository, "the refund repository is mandatory");
+        this.jpaInserter = Objects.requireNonNull(jpaInserter, "the inserter is mandatory");
     }
 
     @Override
     public Refund save(Refund refund) {
         refundRepository.save(RefundJpaMapper.toEntity(refund));
+        return refund;
+    }
+
+    @Override
+    public Refund create(Refund refund) {
+        jpaInserter.insert(RefundJpaMapper.toEntity(refund));
         return refund;
     }
 

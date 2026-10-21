@@ -64,6 +64,13 @@ public class Shipment extends DomainEntity<ShipmentId> {
         return warehouse != null && warehouseId.equals(warehouse.getIdentifier());
     }
 
+    /**
+     * @return whether this shipment is the one of that order (RD-LOG-01).
+     */
+    public boolean isFor(Order order) {
+        return order != null && orderId.equals(order.getIdentifier());
+    }
+
     private Order requireOwnOrder(Order order) {
         Objects.requireNonNull(order, "order is mandatory");
         if (!orderId.equals(order.getIdentifier())) {

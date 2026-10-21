@@ -6,6 +6,7 @@ import application.domain.models.Product;
 import application.domain.ports.out.ProductRepositoryPort;
 import application.domain.valuesObjects.ProductId;
 import application.domain.valuesObjects.ProductStatus;
+import application.domain.valuesObjects.ProductVariantId;
 import application.domain.valuesObjects.SellerId;
 import java.util.List;
 import java.util.Objects;
@@ -20,13 +21,23 @@ public class ProductJpaAdapter implements ProductRepositoryPort {
 
     private final SpringDataJpaProductRepository productRepository;
 
-    public ProductJpaAdapter(SpringDataJpaProductRepository productRepository) {
+    private final JpaInserter jpaInserter;
+
+    public ProductJpaAdapter(SpringDataJpaProductRepository productRepository,
+                             JpaInserter jpaInserter) {
         this.productRepository = Objects.requireNonNull(productRepository, "the product repository is mandatory");
+        this.jpaInserter = Objects.requireNonNull(jpaInserter, "the inserter is mandatory");
     }
 
     @Override
     public Product save(Product product) {
         productRepository.save(ProductJpaMapper.toEntity(product));
+        return product;
+    }
+
+    @Override
+    public Product create(Product product) {
+        jpaInserter.insert(ProductJpaMapper.toEntity(product));
         return product;
     }
 
@@ -60,5 +71,10 @@ public class ProductJpaAdapter implements ProductRepositoryPort {
         return productRepository.findAll().stream()
                 .map(ProductJpaMapper::toDomain)
                 .toList();
+    }
+
+    @Override
+    public boolean existsVariant(ProductVariantId variantId) {
+        return productRepository.existsByVariantsId(variantId.getValue());
     }
 }

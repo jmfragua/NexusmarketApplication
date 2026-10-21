@@ -20,13 +20,23 @@ public class ShipmentJpaAdapter implements ShipmentRepositoryPort {
 
     private final SpringDataJpaShipmentRepository shipmentRepository;
 
-    public ShipmentJpaAdapter(SpringDataJpaShipmentRepository shipmentRepository) {
+    private final JpaInserter jpaInserter;
+
+    public ShipmentJpaAdapter(SpringDataJpaShipmentRepository shipmentRepository,
+                              JpaInserter jpaInserter) {
         this.shipmentRepository = Objects.requireNonNull(shipmentRepository, "the shipment repository is mandatory");
+        this.jpaInserter = Objects.requireNonNull(jpaInserter, "the inserter is mandatory");
     }
 
     @Override
     public Shipment save(Shipment shipment) {
         shipmentRepository.save(ShipmentJpaMapper.toEntity(shipment));
+        return shipment;
+    }
+
+    @Override
+    public Shipment create(Shipment shipment) {
+        jpaInserter.insert(ShipmentJpaMapper.toEntity(shipment));
         return shipment;
     }
 

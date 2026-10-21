@@ -40,6 +40,11 @@ Ubicación en el código: `src/main/java/application/domain/services/`.
 - **RD-SRV-07.** Los servicios que registran bitácora (RD-AUD-01) invocan
   `RegisterOperationLogService` **después** de su propia persistencia, nunca antes: si el `save`
   falla, no debe quedar una entrada describiendo una operación que no ocurrió.
+- **RD-SRV-08.** Todo servicio que crea una entidad con un identificador aportado por quien invoca
+  comprueba primero que esté libre y lanza la excepción de duplicado correspondiente
+  (`DuplicateIdentifierException`, o `DuplicateUserIdentifierException` y
+  `DuplicateInventoryItemException` para usuarios y registros de existencias); después persiste con
+  `create`, nunca con `save` (RD-ID-06).
 
 ---
 
@@ -141,6 +146,7 @@ Los servicios señalan las violaciones de regla con las excepciones de
 | `InvalidRoleChangeException` | RD-ROL-08 |
 | `StaffRoleNotAllowedException` | RD-ROL-09 |
 | `DuplicateUserIdentifierException` | RD-ID-02 |
+| `DuplicateIdentifierException` | RD-ID-06 |
 | `DuplicateEmailException` | RD-ID-03 |
 | `DuplicateIdentityDocumentException` | RD-ID-04 |
 | `BuyerNotAllowedToPurchaseException` | Estado comercial del comprador |

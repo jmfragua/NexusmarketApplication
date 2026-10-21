@@ -14,6 +14,13 @@ public interface ProductReturnRepositoryPort {
 
     ProductReturn save(ProductReturn productReturn);
 
+    /**
+     * Stores a new return. Unlike {@link #save}, it never replaces an existing one: when the
+     * identifier is already taken the storage refuses it, so a creation can never act as an update
+     * (RD-ID-06).
+     */
+    ProductReturn create(ProductReturn productReturn);
+
     Optional<ProductReturn> findById(ProductReturnId productReturnId);
 
     List<ProductReturn> findByOrder(OrderId orderId);

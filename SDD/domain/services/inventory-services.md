@@ -173,6 +173,10 @@ Todo servicio de inventario que modifica estado sigue exactamente esta secuencia
 4. **Persistir ambos**: el `InventoryItem` actualizado y el `InventoryMovement` generado. Nunca uno
    sin el otro, porque no existe cambio de existencias sin movimiento (RD-INV-04).
 
+Antes del paso 3, todo servicio que genera un movimiento comprueba que su identificador esté libre
+(`InventoryMovementRepositoryPort.findById`) y, si no, lanza `DuplicateIdentifierException`: un
+movimiento nuevo nunca reemplaza la trazabilidad de otro registro (RD-ID-06).
+
 **Roles autorizados.** La administración del inventario es responsabilidad compartida entre
 `SELLER` y `LOGISTICS_OPERATOR` (RD-ROL-06). La apertura de registros (`OpenStockRecordService`) es
 la excepción: hoy la expone solo el vendedor, sobre sus propios productos y bodegas (§9). El rol `BUYER` está deliberadamente ausente de todo
@@ -247,6 +251,7 @@ Se persisten el `InventoryItem` actualizado y el `InventoryMovement` generado.
 | `UserNotActiveException` | El actor está bloqueado |
 | `UnauthorizedOperationException` | El rol no administra inventario |
 | `IllegalArgumentException` | Cantidad de cero unidades (invariante del modelo) |
+| `DuplicateIdentifierException` | Ya existe un movimiento con ese identificador (RD-ID-06) |
 
 ---
 
@@ -338,6 +343,7 @@ El total físico no cambia: las unidades se mueven de disponible a reservado.
 | `InsufficientStockException` | El disponible no cubre la cantidad de la línea (RD-INV-02) |
 | `IllegalArgumentException` | El registro de existencias no es el del producto de la línea |
 | `UnauthorizedOperationException` | Rol no autorizado |
+| `DuplicateIdentifierException` | Ya existe un movimiento con ese identificador (RD-ID-06) |
 
 ---
 
@@ -399,6 +405,7 @@ movements         : + 1 movimiento ADJUSTMENT
 |---|---|
 | `IllegalStateException` | No hay suficiente saldo reservado para liberar |
 | `UnauthorizedOperationException` | Rol no autorizado |
+| `DuplicateIdentifierException` | Ya existe un movimiento con ese identificador (RD-ID-06) |
 
 ---
 
@@ -460,6 +467,7 @@ Es el único movimiento que reduce el total físico de la bodega.
 |---|---|
 | `IllegalStateException` | No hay suficiente saldo reservado para despachar |
 | `UnauthorizedOperationException` | El rol no es `LOGISTICS_OPERATOR` |
+| `DuplicateIdentifierException` | Ya existe un movimiento con ese identificador (RD-ID-06) |
 
 ---
 
@@ -531,6 +539,7 @@ movements         : + 1 movimiento ADJUSTMENT (por la diferencia)
 |---|---|
 | `IllegalArgumentException` | La cantidad es nula |
 | `UnauthorizedOperationException` | Rol no autorizado |
+| `DuplicateIdentifierException` | Ya existe un movimiento con ese identificador (RD-ID-06) |
 
 ---
 
@@ -640,6 +649,7 @@ existencias.
 |---|---|
 | `IllegalArgumentException` | Cantidad de cero unidades |
 | `UnauthorizedOperationException` | Rol no autorizado |
+| `DuplicateIdentifierException` | Ya existe un movimiento con ese identificador (RD-ID-06) |
 
 ---
 

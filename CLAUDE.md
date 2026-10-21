@@ -9,7 +9,7 @@ hexagonal architecture (Ports & Adapters) with a DDD core.
 
 All layers are implemented: domain (entities, value objects, exceptions, ports, services),
 persistence adapters (JPA for 12 aggregates, MongoDB for the audit log), REST adapters, use cases,
-JWT security and the bootstrap seeder — 292 production files, covered by 189 tests.
+JWT security and the bootstrap seeder — 294 production files, covered by 217 tests.
 
 Run it with `docker compose up` (MySQL 8.4 + MongoDB 7 + the app), or point the app at those
 containers locally. Bootstrapping needs `SEED_ADMIN_PASSWORD`: without it no administrator is
@@ -77,7 +77,7 @@ application.domain.services        52 services, one per use case, in 14 area sub
 application.domain.ports.in        6 interfaces, one per user role (PublicAccess, Buyer, Seller,
                                     LogisticOperator, Administrator, Supervisor)
 application.domain.ports.out       13 interfaces, one per aggregate repository
-application.domain.exceptions      24 exceptions, one per business rule, all extending
+application.domain.exceptions      25 exceptions, one per business rule, all extending
                                     DomainException
 ```
 

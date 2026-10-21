@@ -9,4 +9,6 @@ public interface SpringDataJpaOrderRepository extends JpaRepository<OrderJpaEnti
     List<OrderJpaEntity> findByBuyerId(String buyerId);
 
     List<OrderJpaEntity> findByStatus(String status);
+
+    boolean existsByLinesId(String id);
 }

@@ -102,6 +102,7 @@ El reembolso emitido, enlazado a la devolución y a la factura.
 | `RefundExceedsInvoiceException` | El monto supera el total facturado |
 | `UnauthorizedOperationException` | El actor no es administrador |
 | `IllegalArgumentException` | La factura no documenta el pedido de la devolución, o las monedas difieren |
+| `DuplicateIdentifierException` | Ya existe un reembolso con ese identificador (RD-ID-06) |
 
 ---
 

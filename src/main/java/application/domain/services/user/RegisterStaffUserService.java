@@ -70,6 +70,6 @@ public class RegisterStaffUserService {
             throw new DuplicateIdentityDocumentException(identityDocument);
         }
         StaffUser staffUser = StaffUser.of(userId, fullName, email, identityDocument, role, UserStatus.ACTIVE);
-        return userRepositoryPort.save(staffUser);
+        return userRepositoryPort.create(staffUser);
     }
 }

@@ -754,6 +754,8 @@ el envío; el avance logístico se refleja en el estado del `Order` (Despachado 
 **Operaciones generadas.**
 
 - `pack()` / `dispatch()` — empaque y salida física de la bodega.
+- `isFor(order): boolean` — indica si el envío es el de ese pedido; un identificador de envío ajeno
+  no se reutiliza para empacar otro pedido (RD-ID-06).
 - `confirmDelivery()` — entrega confirmada, cierra el pedido.
 
 ---
@@ -1030,6 +1032,12 @@ El ciclo es **secuencial**: no se admiten saltos entre estados ni retrocesos. Un
 - **RD-ID-04.** El documento de identidad del usuario es único en toda la plataforma.
 - **RD-ID-05.** El par (`productId`, `warehouseId`) identifica de forma única un `InventoryItem`:
   no pueden existir dos registros de existencias para el mismo producto en la misma bodega.
+- **RD-ID-06.** Una creación nunca actúa como actualización. Todo identificador que aporta quien
+  invoca (RD-POUT-04) —de usuarios, productos, variantes, ítems de carrito, pedidos y sus líneas,
+  bodegas, registros y movimientos de existencias, facturas, envíos, devoluciones y reembolsos— se
+  comprueba libre antes de crear la entidad; si ya existe, el alta se rechaza y la entidad existente
+  queda intacta. La persistencia respalda la regla insertando, nunca fusionando, para que la clave
+  de la base la sostenga también cuando dos peticiones llegan a la vez.
 
 ### 6.2 Roles y autorización
 

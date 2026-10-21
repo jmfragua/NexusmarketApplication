@@ -182,6 +182,7 @@ Ninguna existencia se reserva (RD-PED-04).
 | `UnauthorizedOperationException` | El carrito es de otro comprador, o el rol no es `BUYER` |
 | `UserNotActiveException` | El comprador está bloqueado |
 | `IllegalArgumentException` | Cantidad de cero unidades |
+| `DuplicateIdentifierException` | El identificador ya es de otra línea de carrito (`existsCartItem`); solo se comprueba cuando la selección abre una línea nueva (RD-ID-06) |
 
 ---
 
@@ -415,6 +416,7 @@ Se persisten **ambos**: el carrito vacío y el pedido nuevo.
 | `EmptyCartException` | El carrito no tiene líneas |
 | `IllegalArgumentException` | La dirección no está registrada, o las líneas no corresponden a la selección |
 | `UnauthorizedOperationException` | El carrito es de otro comprador |
+| `DuplicateIdentifierException` | Ya existe un pedido con ese identificador, o una línea con el de alguna línea (o dos líneas lo repiten). El pedido se crea antes de vaciar el carrito (RD-ID-06) |
 
 ---
 

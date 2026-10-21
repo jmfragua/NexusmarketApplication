@@ -12,6 +12,13 @@ public interface SellerRepositoryPort {
 
     Seller save(Seller seller);
 
+    /**
+     * Stores a new seller. Unlike {@link #save}, it never replaces an existing one: when the
+     * identifier is already taken the storage refuses it, so a creation can never act as an update
+     * (RD-ID-06).
+     */
+    Seller create(Seller seller);
+
     Optional<Seller> findById(SellerId sellerId);
 
     List<Seller> findAll();

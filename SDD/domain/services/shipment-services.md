@@ -95,6 +95,7 @@ preparación previa al despacho.
 | `IllegalStateException` | El pedido no está en `PAID` |
 | `IllegalArgumentException` | El pedido no corresponde a este envío |
 | `UnauthorizedOperationException` | El rol no es `LOGISTICS_OPERATOR` |
+| `DuplicateIdentifierException` | El identificador es el del envío de **otro** pedido (`Shipment.isFor`). Reempacar el envío del mismo pedido lo reutiliza (RD-ID-06) |
 
 ---
 

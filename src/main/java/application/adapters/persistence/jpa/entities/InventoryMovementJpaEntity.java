@@ -10,10 +10,15 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.Immutable;
 
 /**
  * Persistence shape of a stock movement: the traceability of the inventory (RD-INV-04).
  */
+// Immutable: a movement is traceability and is never rewritten (RD-INV-04).
+// A merge that reaches an existing row, for instance through an identifier reused by another
+// request, can therefore never rewrite it or move it to another parent.
+@Immutable
 @Entity
 @Table(name = "inventory_movements")
 @Getter

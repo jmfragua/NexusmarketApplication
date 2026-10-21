@@ -101,6 +101,7 @@ Tampoco emite el reembolso: eso corresponde a `IssueRefundService`, gestionado p
 | `UnauthorizedOperationException` | El pedido es de otro comprador, o el rol no es `BUYER` |
 | `IllegalArgumentException` | La línea no pertenece al pedido, o la cantidad excede la de la línea |
 | `UserNotActiveException` | El comprador está bloqueado |
+| `DuplicateIdentifierException` | Ya existe una devolución con ese identificador (RD-ID-06) |
 
 ---
 

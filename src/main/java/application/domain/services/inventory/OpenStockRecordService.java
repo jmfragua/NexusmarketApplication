@@ -78,6 +78,6 @@ public class OpenStockRecordService {
 
         InventoryItem inventoryItem = new InventoryItem(inventoryItemId, product.getIdentifier(), warehouse.getIdentifier());
         warehouse.addInventoryItem(inventoryItem);
-        return inventoryItemRepositoryPort.save(inventoryItem);
+        return inventoryItemRepositoryPort.create(inventoryItem);
     }
 }

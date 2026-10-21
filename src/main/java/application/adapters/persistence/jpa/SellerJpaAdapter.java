@@ -24,13 +24,23 @@ public class SellerJpaAdapter implements SellerRepositoryPort {
 
     private final SpringDataJpaUserRepository userRepository;
 
-    public SellerJpaAdapter(SpringDataJpaUserRepository userRepository) {
+    private final JpaInserter jpaInserter;
+
+    public SellerJpaAdapter(SpringDataJpaUserRepository userRepository,
+                            JpaInserter jpaInserter) {
         this.userRepository = Objects.requireNonNull(userRepository, "the user repository is mandatory");
+        this.jpaInserter = Objects.requireNonNull(jpaInserter, "the inserter is mandatory");
     }
 
     @Override
     public Seller save(Seller seller) {
         userRepository.save(UserJpaMapper.toEntity(seller));
+        return seller;
+    }
+
+    @Override
+    public Seller create(Seller seller) {
+        jpaInserter.insert(UserJpaMapper.toEntity(seller));
         return seller;
     }
 

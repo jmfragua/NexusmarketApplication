@@ -33,6 +33,14 @@ public class InMemoryUserRepository implements UserRepositoryPort {
     }
 
     @Override
+    public <U extends User<?>> U create(U user) {
+        if (users.containsKey(user.getIdentifier().getValue())) {
+            throw new IllegalStateException("identifier already taken: " + user.getIdentifier());
+        }
+        return save(user);
+    }
+
+    @Override
     public Optional<User<?>> findByIdentifier(Identifier identifier) {
         return Optional.ofNullable(users.get(identifier.getValue()));
     }

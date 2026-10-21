@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface SpringDataJpaCartRepository extends JpaRepository<CartJpaEntity, String> {
 
     Optional<CartJpaEntity> findByBuyerId(String buyerId);
+
+    boolean existsByItemsId(String id);
 }

@@ -14,8 +14,10 @@ import application.domain.ports.out.RefundRepositoryPort;
 import application.domain.ports.out.ShipmentRepositoryPort;
 import application.domain.valuesObjects.BuyerId;
 import application.domain.valuesObjects.CartId;
+import application.domain.valuesObjects.CartItemId;
 import application.domain.valuesObjects.InvoiceId;
 import application.domain.valuesObjects.OrderId;
+import application.domain.valuesObjects.OrderLineId;
 import application.domain.valuesObjects.OrderStatus;
 import application.domain.valuesObjects.ProductReturnId;
 import application.domain.valuesObjects.RefundId;
@@ -55,6 +57,21 @@ public final class InMemoryCommerceRepositories {
             }
 
             @Override
+            public Cart create(Cart cart) {
+                if (carts.containsKey(cart.getIdentifier().getValue())) {
+                    throw new IllegalStateException("identifier already taken: " + cart.getIdentifier());
+                }
+                return save(cart);
+            }
+
+            @Override
+            public boolean existsCartItem(CartItemId cartItemId) {
+                return carts.values().stream()
+                        .flatMap(cart -> cart.getItems().stream())
+                        .anyMatch(item -> item.getIdentifier().equals(cartItemId));
+            }
+
+            @Override
             public Optional<Cart> findById(CartId cartId) {
                 return Optional.ofNullable(carts.get(cartId.getValue()));
             }
@@ -75,6 +92,21 @@ public final class InMemoryCommerceRepositories {
             public Order save(Order order) {
                 orders.put(order.getIdentifier().getValue(), order);
                 return order;
+            }
+
+            @Override
+            public Order create(Order order) {
+                if (orders.containsKey(order.getIdentifier().getValue())) {
+                    throw new IllegalStateException("identifier already taken: " + order.getIdentifier());
+                }
+                return save(order);
+            }
+
+            @Override
+            public boolean existsOrderLine(OrderLineId orderLineId) {
+                return orders.values().stream()
+                        .flatMap(order -> order.getLines().stream())
+                        .anyMatch(line -> line.getIdentifier().equals(orderLineId));
             }
 
             @Override
@@ -113,6 +145,14 @@ public final class InMemoryCommerceRepositories {
             }
 
             @Override
+            public Invoice create(Invoice invoice) {
+                if (invoices.containsKey(invoice.getIdentifier().getValue())) {
+                    throw new IllegalStateException("identifier already taken: " + invoice.getIdentifier());
+                }
+                return save(invoice);
+            }
+
+            @Override
             public Optional<Invoice> findById(InvoiceId invoiceId) {
                 return Optional.ofNullable(invoices.get(invoiceId.getValue()));
             }
@@ -145,6 +185,14 @@ public final class InMemoryCommerceRepositories {
             public Shipment save(Shipment shipment) {
                 shipments.put(shipment.getIdentifier().getValue(), shipment);
                 return shipment;
+            }
+
+            @Override
+            public Shipment create(Shipment shipment) {
+                if (shipments.containsKey(shipment.getIdentifier().getValue())) {
+                    throw new IllegalStateException("identifier already taken: " + shipment.getIdentifier());
+                }
+                return save(shipment);
             }
 
             @Override
@@ -183,6 +231,14 @@ public final class InMemoryCommerceRepositories {
             }
 
             @Override
+            public ProductReturn create(ProductReturn productReturn) {
+                if (returns.containsKey(productReturn.getIdentifier().getValue())) {
+                    throw new IllegalStateException("identifier already taken: " + productReturn.getIdentifier());
+                }
+                return save(productReturn);
+            }
+
+            @Override
             public Optional<ProductReturn> findById(ProductReturnId productReturnId) {
                 return Optional.ofNullable(returns.get(productReturnId.getValue()));
             }
@@ -208,6 +264,14 @@ public final class InMemoryCommerceRepositories {
             public Refund save(Refund refund) {
                 refunds.put(refund.getIdentifier().getValue(), refund);
                 return refund;
+            }
+
+            @Override
+            public Refund create(Refund refund) {
+                if (refunds.containsKey(refund.getIdentifier().getValue())) {
+                    throw new IllegalStateException("identifier already taken: " + refund.getIdentifier());
+                }
+                return save(refund);
             }
 
             @Override

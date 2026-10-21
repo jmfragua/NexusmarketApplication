@@ -1,6 +1,7 @@
 package application.domain.services.seller;
 
 import application.domain.exceptions.DuplicateEmailException;
+import application.domain.exceptions.DuplicateIdentifierException;
 import application.domain.exceptions.DuplicateIdentityDocumentException;
 import application.domain.exceptions.DuplicateUserIdentifierException;
 import application.domain.models.Seller;
@@ -76,6 +77,10 @@ public class RegisterSellerService {
         if (userRepositoryPort.findByIdentifier(sellerId).isPresent()) {
             throw new DuplicateUserIdentifierException(sellerId);
         }
+        Objects.requireNonNull(firstWarehouse, "the first warehouse is mandatory");
+        if (warehouseRepositoryPort.findById(firstWarehouse.getIdentifier()).isPresent()) {
+            throw new DuplicateIdentifierException("warehouse", firstWarehouse.getIdentifier());
+        }
         if (userRepositoryPort.existsByEmail(email)) {
             throw new DuplicateEmailException(email);
         }
@@ -83,8 +88,8 @@ public class RegisterSellerService {
             throw new DuplicateIdentityDocumentException(identityDocument);
         }
         Seller seller = Seller.register(sellerId, fullName, email, identityDocument, status, firstWarehouse, actor);
-        warehouseRepositoryPort.save(firstWarehouse);
-        Seller registeredSeller = sellerRepositoryPort.save(seller);
+        warehouseRepositoryPort.create(firstWarehouse);
+        Seller registeredSeller = sellerRepositoryPort.create(seller);
         registerOperationLogService.register(actor, OperationType.SELLER_REGISTERED, registeredSeller,
                 "seller incorporated with first warehouse " + firstWarehouse.getIdentifier());
         return registeredSeller;

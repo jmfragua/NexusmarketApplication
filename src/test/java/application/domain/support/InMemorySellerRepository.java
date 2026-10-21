@@ -23,6 +23,14 @@ public class InMemorySellerRepository implements SellerRepositoryPort {
     }
 
     @Override
+    public Seller create(Seller seller) {
+        if (sellers.containsKey(seller.getIdentifier().getValue())) {
+            throw new IllegalStateException("identifier already taken: " + seller.getIdentifier());
+        }
+        return save(seller);
+    }
+
+    @Override
     public Optional<Seller> findById(SellerId sellerId) {
         return Optional.ofNullable(sellers.get(sellerId.getValue()));
     }

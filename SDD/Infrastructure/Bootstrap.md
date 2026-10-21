@@ -55,6 +55,11 @@ if (!userRepositoryPort.findByRole(UserRole.ADMINISTRATOR).isEmpty()) {
   ejemplo. Los operadores logísticos y los supervisores los incorpora después el administrador con
   `POST /api/v1/admin/staff` (RD-ROL-09). Crea lo mínimo para que el sistema sea operable; el resto se da de alta por el API, que
   es donde las reglas se aplican.
+- **RD-BOOT-06. Nunca sobre un usuario existente.** Si no queda ningún administrador pero el
+  identificador o el correo configurados ya pertenecen a otro usuario —por ejemplo, porque al
+  administrador inicial se le cambió el rol—, el seeder no crea nada y lo registra como error. Crear
+  el administrador con ese identificador reemplazaría al usuario existente (RD-ID-06). Además crea
+  con `create`, nunca con `save`.
 - **RD-BOOT-04. Credencial después del usuario.** Primero se persiste el administrador, después su
   credencial, igual que en el registro de compradores: un fallo intermedio no debe dejar una
   contraseña huérfana.

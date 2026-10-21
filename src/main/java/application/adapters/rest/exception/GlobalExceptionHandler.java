@@ -5,6 +5,7 @@ import application.domain.exceptions.BuyerNotAllowedToPurchaseException;
 import application.domain.exceptions.DamagedStockException;
 import application.domain.exceptions.DomainException;
 import application.domain.exceptions.DuplicateEmailException;
+import application.domain.exceptions.DuplicateIdentifierException;
 import application.domain.exceptions.DuplicateIdentityDocumentException;
 import application.domain.exceptions.DuplicateInventoryItemException;
 import application.domain.exceptions.DuplicateUserIdentifierException;
@@ -21,10 +22,12 @@ import application.domain.exceptions.RefundExceedsInvoiceException;
 import application.domain.exceptions.StaffRoleNotAllowedException;
 import application.domain.exceptions.StockRecordNotAllowedException;
 import application.domain.exceptions.ReturnNotAllowedException;
+import application.domain.exceptions.ShipmentNotAllowedException;
 import application.domain.exceptions.UnauthorizedOperationException;
 import application.domain.exceptions.UserNotActiveException;
 import application.domain.exceptions.WarehouseNotOwnedException;
 import java.util.Map;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -68,6 +71,8 @@ public class GlobalExceptionHandler {
             Map.entry(DuplicateEmailException.class, HttpStatus.CONFLICT),
             Map.entry(DuplicateIdentityDocumentException.class, HttpStatus.CONFLICT),
             Map.entry(DuplicateUserIdentifierException.class, HttpStatus.CONFLICT),
+            Map.entry(DuplicateIdentifierException.class, HttpStatus.CONFLICT),
+            Map.entry(ShipmentNotAllowedException.class, HttpStatus.CONFLICT),
             Map.entry(DuplicateInventoryItemException.class, HttpStatus.CONFLICT),
             Map.entry(StockRecordNotAllowedException.class, HttpStatus.CONFLICT),
             Map.entry(InvalidRoleChangeException.class, HttpStatus.CONFLICT),
@@ -78,6 +83,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleDomainException(DomainException exception) {
         HttpStatus status = STATUS_BY_RULE.getOrDefault(exception.getClass(), HttpStatus.BAD_REQUEST);
         return build(status, exception.getClass().getSimpleName(), exception.getMessage());
+    }
+
+    /**
+     * The storage refused a row whose primary or unique key is already taken. The domain checks the
+     * identifiers first and answers with its own rule; this only happens when two requests create the
+     * same identifier at the same time, and the database is what keeps the second one from replacing
+     * the first (RD-ID-06). A conflict, never a server error.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException exception) {
+        return build(HttpStatus.CONFLICT, "UniqueConstraintViolation",
+                "the identifier or unique combination is already taken by an existing record");
     }
 
     /**

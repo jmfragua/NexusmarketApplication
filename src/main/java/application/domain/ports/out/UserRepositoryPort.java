@@ -21,6 +21,13 @@ public interface UserRepositoryPort {
 
     <U extends User<?>> U save(U user);
 
+    /**
+     * Stores a new user. Unlike {@link #save}, it never replaces an existing one: when the
+     * identifier is already taken the storage refuses it, so a creation can never act as an update
+     * (RD-ID-06).
+     */
+    <U extends User<?>> U create(U user);
+
     Optional<User<?>> findByIdentifier(Identifier identifier);
 
     Optional<Buyer> findBuyerById(BuyerId buyerId);

@@ -15,6 +15,13 @@ public interface InventoryItemRepositoryPort {
 
     InventoryItem save(InventoryItem inventoryItem);
 
+    /**
+     * Stores a new stock record. Unlike {@link #save}, it never replaces an existing one: when the
+     * identifier is already taken the storage refuses it, so a creation can never act as an update
+     * (RD-ID-06).
+     */
+    InventoryItem create(InventoryItem inventoryItem);
+
     Optional<InventoryItem> findById(InventoryItemId inventoryItemId);
 
     Optional<InventoryItem> findByProductAndWarehouse(ProductId productId, WarehouseId warehouseId);

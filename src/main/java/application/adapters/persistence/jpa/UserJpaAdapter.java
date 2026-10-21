@@ -23,8 +23,12 @@ public class UserJpaAdapter implements UserRepositoryPort {
 
     private final SpringDataJpaUserRepository userRepository;
 
-    public UserJpaAdapter(SpringDataJpaUserRepository userRepository) {
+    private final JpaInserter jpaInserter;
+
+    public UserJpaAdapter(SpringDataJpaUserRepository userRepository,
+                          JpaInserter jpaInserter) {
         this.userRepository = Objects.requireNonNull(userRepository, "the user repository is mandatory");
+        this.jpaInserter = Objects.requireNonNull(jpaInserter, "the inserter is mandatory");
     }
 
     /**
@@ -34,6 +38,12 @@ public class UserJpaAdapter implements UserRepositoryPort {
     @Override
     public <U extends User<?>> U save(U user) {
         userRepository.save(UserJpaMapper.toEntity(user));
+        return user;
+    }
+
+    @Override
+    public <U extends User<?>> U create(U user) {
+        jpaInserter.insert(UserJpaMapper.toEntity(user));
         return user;
     }
 

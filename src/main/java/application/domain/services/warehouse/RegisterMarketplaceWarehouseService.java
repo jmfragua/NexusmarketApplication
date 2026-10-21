@@ -1,5 +1,6 @@
 package application.domain.services.warehouse;
 
+import application.domain.exceptions.DuplicateIdentifierException;
 import application.domain.models.MarketplaceWarehouse;
 import application.domain.models.User;
 import application.domain.ports.out.WarehouseRepositoryPort;
@@ -37,8 +38,11 @@ public class RegisterMarketplaceWarehouseService {
      */
     public MarketplaceWarehouse register(User<?> actor, WarehouseId warehouseId) {
         validateRoleAuthorizationService.validate(actor, OPERATION, UserRole.ADMINISTRATOR);
+        if (warehouseRepositoryPort.findById(warehouseId).isPresent()) {
+            throw new DuplicateIdentifierException("warehouse", warehouseId);
+        }
         MarketplaceWarehouse warehouse = new MarketplaceWarehouse(warehouseId);
-        warehouseRepositoryPort.save(warehouse);
+        warehouseRepositoryPort.create(warehouse);
         return warehouse;
     }
 }

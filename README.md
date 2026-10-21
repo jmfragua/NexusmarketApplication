@@ -17,7 +17,7 @@ El proyecto separa el dominio de negocio de los detalles técnicos mediante puer
 - **REST** (`application.adapters.rest`) — controladores, DTOs y mappers.
 - **Seguridad** (`application.infrastructure.security`) — autenticación JWT.
 
-Todas las capas están implementadas: 292 archivos de producción, cubiertos por 189 pruebas.
+Todas las capas están implementadas: 294 archivos de producción, cubiertos por 217 pruebas.
 
 La documentación de diseño completa, con trazabilidad a las reglas de negocio, está en
 [`SDD/`](SDD/):
@@ -115,7 +115,7 @@ application.domain.services        52 servicios en 14 áreas (authorization, use
                                     shipment, returns, refund, reporting, audit)
 application.domain.ports.in        6 puertos de entrada, uno por rol
 application.domain.ports.out       13 puertos de salida, uno por agregado
-application.domain.exceptions      24 excepciones de dominio
+application.domain.exceptions      25 excepciones de dominio
 ```
 
 ## Autor

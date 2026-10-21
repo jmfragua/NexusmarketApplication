@@ -78,6 +78,26 @@ public static Order toDomain(OrderJpaEntity entity) {
   reordenar el enum no debe corromper los datos guardados.
 - **RD-PER-05.** La reconstrucción usa las fábricas `reconstruct(...)` donde existan (RD-ALC-04),
   jamás las operaciones de negocio.
+- **RD-PER-06.** `create` inserta y `save` fusiona. Con identificadores asignados por el cliente,
+  `JpaRepository.save` siempre hace `merge`, que sobre un identificador existente **actualiza** la
+  fila: un alta con un identificador ajeno reemplazaba la entidad de otro usuario. `create` delega
+  en `JpaInserter`, que hace `persist` y `flush` dentro de una transacción: la base inserta, y su
+  clave primaria o única rechaza el duplicado aunque dos peticiones hayan superado a la vez la
+  comprobación del dominio. Al ser un `@Repository`, la violación llega traducida como
+  `DataIntegrityViolationException`, que `GlobalExceptionHandler` responde con
+  `409 UniqueConstraintViolation`, nunca con 500. Cubre también la carrera en el par
+  producto–bodega de `InventoryItem` (`uk_inventory_product_warehouse`).
+- **RD-PER-07.** Las entidades hijas que no cambian después de creadas —`ProductVariantJpaEntity`,
+  `OrderLineJpaEntity`, `InventoryMovementJpaEntity`— son `@Immutable`. Se guardan en cascada con
+  su agregado mediante `merge`, y la inmutabilidad garantiza que un `merge` que alcance una fila
+  existente —por un identificador reutilizado— no pueda reescribirla ni moverla a otro padre.
+
+**Límite conocido.** `CartItemJpaEntity` sí cambia (la cantidad), así que no puede ser inmutable.
+El dominio rechaza un identificador de ítem ya existente (`existsCartItem`), pero dos peticiones
+simultáneas que crearan el **mismo identificador nuevo** en carritos distintos podrían cruzarse en
+el `merge`. No afecta a ningún ítem preexistente, y con identificadores UUID generados por el
+cliente exige adivinar el identificador de otra petición en curso. Cerrarlo del todo exigiría
+transacciones por caso de uso, que el sistema todavía no declara.
 
 ---
 

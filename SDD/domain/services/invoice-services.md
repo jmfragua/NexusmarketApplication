@@ -84,6 +84,7 @@ La factura emitida, cuyo total coincide con el del pedido por construcción.
 | `InvalidOrderTransitionException` | El pago del pedido no ha sido validado |
 | `UnauthorizedOperationException` | El rol no emite facturas |
 | `UserNotActiveException` | El actor está bloqueado |
+| `DuplicateIdentifierException` | Ya existe una factura con ese identificador (RD-ID-06) |
 
 ---
 

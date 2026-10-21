@@ -20,14 +20,24 @@ public class WarehouseJpaAdapter implements WarehouseRepositoryPort {
 
     private final SpringDataJpaWarehouseRepository warehouseRepository;
 
-    public WarehouseJpaAdapter(SpringDataJpaWarehouseRepository warehouseRepository) {
+    private final JpaInserter jpaInserter;
+
+    public WarehouseJpaAdapter(SpringDataJpaWarehouseRepository warehouseRepository,
+                               JpaInserter jpaInserter) {
         this.warehouseRepository = Objects.requireNonNull(warehouseRepository,
                 "the warehouse repository is mandatory");
+        this.jpaInserter = Objects.requireNonNull(jpaInserter, "the inserter is mandatory");
     }
 
     @Override
     public Warehouse save(Warehouse warehouse) {
         warehouseRepository.save(WarehouseJpaMapper.toEntity(warehouse));
+        return warehouse;
+    }
+
+    @Override
+    public Warehouse create(Warehouse warehouse) {
+        jpaInserter.insert(WarehouseJpaMapper.toEntity(warehouse));
         return warehouse;
     }
 

@@ -1,5 +1,6 @@
 package application.domain.services.cart;
 
+import application.domain.exceptions.DuplicateIdentifierException;
 import application.domain.exceptions.ProductNotAvailableException;
 import application.domain.models.Buyer;
 import application.domain.models.Cart;
@@ -58,6 +59,12 @@ public class AddCartItemService {
         Objects.requireNonNull(product, "product is mandatory");
         if (!product.isVisibleInCatalog()) {
             throw new ProductNotAvailableException(product.getIdentifier());
+        }
+        // The identifier is only used when the selection opens a new line; selecting a variant already
+        // in the cart accumulates the quantity on the existing line instead (Cart.addItem).
+        if (cart.findItem(product.getIdentifier(), variantId).isEmpty()
+                && cartRepositoryPort.existsCartItem(cartItemId)) {
+            throw new DuplicateIdentifierException("cart item", cartItemId);
         }
         CartItem item = cart.addItem(cartItemId, product.getIdentifier(), variantId, quantity);
         cartRepositoryPort.save(cart);

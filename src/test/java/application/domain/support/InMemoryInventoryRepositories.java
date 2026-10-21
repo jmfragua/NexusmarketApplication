@@ -34,6 +34,14 @@ public final class InMemoryInventoryRepositories {
             }
 
             @Override
+            public InventoryItem create(InventoryItem inventoryItem) {
+                if (items.containsKey(inventoryItem.getIdentifier().getValue())) {
+                    throw new IllegalStateException("identifier already taken: " + inventoryItem.getIdentifier());
+                }
+                return save(inventoryItem);
+            }
+
+            @Override
             public Optional<InventoryItem> findById(InventoryItemId inventoryItemId) {
                 return Optional.ofNullable(items.get(inventoryItemId.getValue()));
             }

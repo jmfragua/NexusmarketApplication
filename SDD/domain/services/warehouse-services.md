@@ -86,6 +86,7 @@ La bodega registrada, sin existencias.
 |---|---|
 | `UnauthorizedOperationException` | El actor no es administrador |
 | `UserNotActiveException` | El administrador está bloqueado |
+| `DuplicateIdentifierException` | Ya existe una bodega con ese identificador (RD-ID-06) |
 
 ---
 

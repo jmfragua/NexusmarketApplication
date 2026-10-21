@@ -71,7 +71,7 @@ src/main/java/application/
 ├── domain/
 │   ├── models/              23 archivos (DomainEntity + 22 entidades)
 │   ├── valuesObjects/       37 objetos de valor y enumeraciones
-│   ├── exceptions/          24 excepciones de dominio
+│   ├── exceptions/          25 excepciones de dominio
 │   ├── ports/
 │   │   ├── in/               6 puertos de entrada (uno por rol)
 │   │   └── out/             13 puertos de salida (uno por agregado)
@@ -143,19 +143,19 @@ infraestructura y no contamina los puertos de salida.
 |---|---:|---|---|
 | `domain/models` | 23 | Implementada | [Domain Model.md](../domain/Domain%20Model.md) |
 | `domain/valuesObjects` | 37 | Implementada | [Domain Value Objects.md](../domain/Domain%20Value%20Objects.md) |
-| `domain/exceptions` | 24 | Implementada | [Domain Services.md](../domain/Domain%20Services.md) §5 |
+| `domain/exceptions` | 25 | Implementada | [Domain Services.md](../domain/Domain%20Services.md) §5 |
 | `domain/ports/in` | 6 | Implementada | [Input-ports.md](../domain/Input-ports.md) |
 | `domain/ports/out` | 13 | Implementada | [Output-ports.md](../domain/Output-ports.md) |
 | `domain/services` | 52 | Implementada | [Domain Services.md](../domain/Domain%20Services.md) |
 | `adapters/useCases` | 6 | Implementada | [Use-cases-adapters.md](../Adapters/Use-cases-adapters.md) |
-| `adapters/persistence` | 51 | Implementada | [Persistence-adapters.md](../Adapters/Persistence-adapters.md) |
+| `adapters/persistence` | 52 | Implementada | [Persistence-adapters.md](../Adapters/Persistence-adapters.md) |
 | `adapters/rest` | 53 | Implementada | [Rest-adapters.md](../Adapters/Rest-adapters.md) · [Api-rest-endpoints.md](../Adapters/Api-rest-endpoints.md) |
 | `infrastructure/config` | 15 | Implementada | §5.1 |
 | `infrastructure/security` | 10 | Implementada | [Security.md](../Infrastructure/Security.md) |
 | `infrastructure/seed` | 1 | Implementada | [Bootstrap.md](../Infrastructure/Bootstrap.md) |
-| Pruebas | 32 archivos / 189 tests | Implementadas | §6 |
+| Pruebas | 36 archivos / 217 tests | Implementadas | §6 |
 
-**Total:** 292 archivos de producción (incluida la clase `NexusmarketApplication`).
+**Total:** 294 archivos de producción (incluida la clase `NexusmarketApplication`).
 
 ### 5.1 Exposición de los servicios de dominio como beans
 

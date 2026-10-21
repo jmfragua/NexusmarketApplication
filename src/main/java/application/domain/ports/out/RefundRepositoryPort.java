@@ -14,6 +14,13 @@ public interface RefundRepositoryPort {
 
     Refund save(Refund refund);
 
+    /**
+     * Stores a new refund. Unlike {@link #save}, it never replaces an existing one: when the
+     * identifier is already taken the storage refuses it, so a creation can never act as an update
+     * (RD-ID-06).
+     */
+    Refund create(Refund refund);
+
     Optional<Refund> findById(RefundId refundId);
 
     Optional<Refund> findByProductReturn(ProductReturnId productReturnId);

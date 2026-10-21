@@ -1,5 +1,6 @@
 package application.domain.services.refund;
 
+import application.domain.exceptions.DuplicateIdentifierException;
 import application.domain.exceptions.RefundExceedsInvoiceException;
 import application.domain.models.Invoice;
 import application.domain.models.ProductReturn;
@@ -55,8 +56,11 @@ public class IssueRefundService {
         if (amount.isGreaterThan(invoice.getTotalAmount())) {
             throw new RefundExceedsInvoiceException(invoice.getIdentifier(), amount);
         }
+        if (refundRepositoryPort.findById(refundId).isPresent()) {
+            throw new DuplicateIdentifierException("refund", refundId);
+        }
         Refund refund = Refund.issueFor(refundId, productReturn, invoice, amount);
-        Refund issuedRefund = refundRepositoryPort.save(refund);
+        Refund issuedRefund = refundRepositoryPort.create(refund);
         registerOperationLogService.register(actor, OperationType.REFUND_ISSUED, issuedRefund,
                 "refund of " + amount + " issued for return " + productReturn.getIdentifier());
         return issuedRefund;

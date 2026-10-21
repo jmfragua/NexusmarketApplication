@@ -15,6 +15,13 @@ public interface ShipmentRepositoryPort {
 
     Shipment save(Shipment shipment);
 
+    /**
+     * Stores a new shipment. Unlike {@link #save}, it never replaces an existing one: when the
+     * identifier is already taken the storage refuses it, so a creation can never act as an update
+     * (RD-ID-06).
+     */
+    Shipment create(Shipment shipment);
+
     Optional<Shipment> findById(ShipmentId shipmentId);
 
     List<Shipment> findByOrder(OrderId orderId);

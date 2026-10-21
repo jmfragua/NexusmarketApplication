@@ -3,6 +3,7 @@ package application.domain.support;
 import application.domain.models.Product;
 import application.domain.ports.out.ProductRepositoryPort;
 import application.domain.valuesObjects.ProductId;
+import application.domain.valuesObjects.ProductVariantId;
 import application.domain.valuesObjects.ProductStatus;
 import application.domain.valuesObjects.SellerId;
 import java.util.ArrayList;
@@ -22,6 +23,14 @@ public class InMemoryProductRepository implements ProductRepositoryPort {
     public Product save(Product product) {
         products.put(product.getIdentifier().getValue(), product);
         return product;
+    }
+
+    @Override
+    public Product create(Product product) {
+        if (products.containsKey(product.getIdentifier().getValue())) {
+            throw new IllegalStateException("identifier already taken: " + product.getIdentifier());
+        }
+        return save(product);
     }
 
     @Override
@@ -50,5 +59,12 @@ public class InMemoryProductRepository implements ProductRepositoryPort {
     @Override
     public List<Product> findAll() {
         return new ArrayList<>(products.values());
+    }
+
+    @Override
+    public boolean existsVariant(ProductVariantId variantId) {
+        return products.values().stream()
+                .flatMap(product -> product.getVariants().stream())
+                .anyMatch(variant -> variant.getIdentifier().equals(variantId));
     }
 }

@@ -20,13 +20,23 @@ public class InvoiceJpaAdapter implements InvoiceRepositoryPort {
 
     private final SpringDataJpaInvoiceRepository invoiceRepository;
 
-    public InvoiceJpaAdapter(SpringDataJpaInvoiceRepository invoiceRepository) {
+    private final JpaInserter jpaInserter;
+
+    public InvoiceJpaAdapter(SpringDataJpaInvoiceRepository invoiceRepository,
+                             JpaInserter jpaInserter) {
         this.invoiceRepository = Objects.requireNonNull(invoiceRepository, "the invoice repository is mandatory");
+        this.jpaInserter = Objects.requireNonNull(jpaInserter, "the inserter is mandatory");
     }
 
     @Override
     public Invoice save(Invoice invoice) {
         invoiceRepository.save(InvoiceJpaMapper.toEntity(invoice));
+        return invoice;
+    }
+
+    @Override
+    public Invoice create(Invoice invoice) {
+        jpaInserter.insert(InvoiceJpaMapper.toEntity(invoice));
         return invoice;
     }
 

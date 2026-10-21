@@ -228,6 +228,7 @@ variants : vacío (todavía no visible en el catálogo público)
 | `ProductNotOwnedException` | El `sellerId` del producto no es el del vendedor |
 | `UnauthorizedOperationException` | El rol no es `SELLER` |
 | `UserNotActiveException` | El vendedor está bloqueado |
+| `DuplicateIdentifierException` | Ya existe un producto con ese identificador; el existente no se modifica (RD-ID-06) |
 
 ---
 
@@ -387,6 +388,7 @@ comercializable.
 | `IllegalArgumentException` | La variante pertenece a otro producto |
 | `IllegalStateException` | El producto está descontinuado |
 | `ProductNotOwnedException` | El producto es de otro vendedor |
+| `DuplicateIdentifierException` | Algún producto ya tiene una variante con ese identificador (`existsVariant`). Un producto descontinuado se rechaza antes, por su estado (RD-ID-06) |
 
 ---
 

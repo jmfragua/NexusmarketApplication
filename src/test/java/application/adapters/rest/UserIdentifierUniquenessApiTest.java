@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import application.domain.models.User;
 import application.domain.valuesObjects.UserId;
 import application.domain.valuesObjects.UserRole;
+import application.infrastructure.seed.DatabaseSeeder;
 import application.support.ApiTestSupport;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -55,5 +56,17 @@ class UserIdentifierUniquenessApiTest extends ApiTestSupport {
                 .andExpect(jsonPath("$.rule").value("DuplicateUserIdentifierException"));
 
         assertEquals(UserRole.BUYER, userRepositoryPort.findByIdentifier(UserId.of("b-taken")).orElseThrow().getRole());
+    }
+
+    @Test
+    @DisplayName("the seeder never creates the administrator over an existing user")
+    void seederNeverReplacesAUser() throws Exception {
+        buyerToken("seed");
+
+        new DatabaseSeeder(userRepositoryPort, credentialService, "b-seed", "nuevo-admin@nexusmarket.test",
+                "seed-secret", "DOC-NEW-ADMIN").run();
+
+        assertEquals(UserRole.BUYER, userRepositoryPort.findByIdentifier(UserId.of("b-seed")).orElseThrow().getRole());
+        assertEquals(0, userRepositoryPort.findByRole(UserRole.ADMINISTRATOR).size());
     }
 }

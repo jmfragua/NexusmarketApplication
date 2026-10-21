@@ -115,8 +115,9 @@ El comprador llega ya construido y validado por el modelo: `FullName`, `EmailAdd
 
 ## Procesamiento
 
-1. Persiste el comprador con `UserRepositoryPort.save`.
-2. **Crea y persiste su carrito activo** con el identificador recibido.
+1. Persiste el comprador con `UserRepositoryPort.create`, que nunca reemplaza un usuario existente
+   (RD-ID-06).
+2. **Crea y persiste su carrito activo** con el identificador recibido, también con `create`.
 
 ## Por qué el carrito nace aquí
 

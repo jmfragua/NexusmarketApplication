@@ -1,5 +1,6 @@
 package application.domain.services.inventory;
 
+import application.domain.exceptions.DuplicateIdentifierException;
 import application.domain.models.InventoryItem;
 import application.domain.models.InventoryMovement;
 import application.domain.models.ProductReturn;
@@ -47,6 +48,9 @@ public class RestockReturnService {
         validateRoleAuthorizationService.validate(actor, OPERATION, UserRole.LOGISTICS_OPERATOR, UserRole.SELLER);
         Objects.requireNonNull(productReturn, "the return is mandatory");
         Objects.requireNonNull(inventoryItem, "the stock record is mandatory");
+        if (inventoryMovementRepositoryPort.findById(movementId).isPresent()) {
+            throw new DuplicateIdentifierException("stock movement", movementId);
+        }
         InventoryMovement movement = productReturn.restock(inventoryItem, movementId);
         inventoryItemRepositoryPort.save(inventoryItem);
         return inventoryMovementRepositoryPort.save(movement);

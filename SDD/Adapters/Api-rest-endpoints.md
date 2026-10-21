@@ -15,6 +15,16 @@
 | `404` | La entidad referida no existe |
 | `409` | El estado actual de la entidad prohíbe la operación |
 
+**Identificadores repetidos.** Toda alta recibe el identificador de la nueva entidad (RD-POUT-04).
+Si ya existe una entidad con ese identificador, la respuesta es `409` y la existente queda intacta:
+una creación nunca actúa como actualización (RD-ID-06). La regla del cuerpo es
+`DuplicateIdentifierException` (o `DuplicateUserIdentifierException` y
+`DuplicateInventoryItemException` para usuarios y registros de existencias). Si dos peticiones
+crean a la vez el mismo identificador, la base rechaza la segunda con
+`409 UniqueConstraintViolation`. Aplica a usuarios, productos, variantes, ítems de carrito, pedidos
+y sus líneas, bodegas, registros y movimientos de existencias, facturas, envíos, devoluciones y
+reembolsos. Reenviar a empacar el mismo envío del mismo pedido no es un alta: lo reutiliza.
+
 Todo error devuelve el mismo cuerpo:
 
 ```json
@@ -140,6 +150,12 @@ edición libre del campo.
 **Errores característicos:** `403` producto o bodega de otro vendedor · `409` descontinuar sin
 suspender primero, o modificar un producto descontinuado.
 
+**Pertenencia de las existencias.** Ingresos, ajustes, daño (`/seller/stock/...`) y la consulta
+`/seller/products/{productId}/stock` solo operan sobre registros cuyo producto **y** bodega son del
+vendedor: `403 ProductNotOwnedException` o `403 WarehouseNotOwnedException` si no, `404` si el
+registro o el producto no existen. Logística y supervisión operan sobre todas las bodegas por su
+rol, y sus rutas están cerradas a los demás roles.
+
 **Abrir un registro de existencias.** Es el paso previo a todo ingreso: crea el `InventoryItem`
 vacío sobre el que operan después ingresos, reservas, salidas, ajustes y daños.
 
@@ -179,7 +195,8 @@ Las operaciones de reserva, liberación y salida **no reciben cantidad**: la tom
 pedido, de modo que el compromiso nunca puede desalinearse de lo ordenado.
 
 **Errores característicos:** `409` existencias insuficientes, existencias dañadas, pedido sin
-productos físicos, transición de pedido inválida.
+productos físicos (`ShipmentNotAllowedException`), transición de pedido inválida, identificador de
+envío que pertenece a otro pedido o identificador de movimiento repetido.
 
 ---
 

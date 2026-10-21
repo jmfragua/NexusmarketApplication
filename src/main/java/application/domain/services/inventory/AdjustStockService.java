@@ -1,5 +1,6 @@
 package application.domain.services.inventory;
 
+import application.domain.exceptions.DuplicateIdentifierException;
 import application.domain.models.InventoryItem;
 import application.domain.models.InventoryMovement;
 import application.domain.models.User;
@@ -55,6 +56,9 @@ public class AdjustStockService {
                                     InventoryMovementId movementId) {
         validateRoleAuthorizationService.validate(actor, OPERATION, UserRole.SELLER, UserRole.LOGISTICS_OPERATOR);
         Objects.requireNonNull(inventoryItem, "the stock record is mandatory");
+        if (inventoryMovementRepositoryPort.findById(movementId).isPresent()) {
+            throw new DuplicateIdentifierException("stock movement", movementId);
+        }
         InventoryMovement movement = inventoryItem.adjust(newAvailableQuantity, movementId);
         inventoryItemRepositoryPort.save(inventoryItem);
         InventoryMovement savedMovement = inventoryMovementRepositoryPort.save(movement);

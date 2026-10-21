@@ -1,5 +1,6 @@
 package application.domain.services.catalog;
 
+import application.domain.exceptions.DuplicateIdentifierException;
 import application.domain.models.Product;
 import application.domain.models.ProductVariant;
 import application.domain.models.Seller;
@@ -39,6 +40,12 @@ public class AddProductVariantService {
     public Product addVariant(Seller seller, Product product, ProductVariant variant) {
         validateRoleAuthorizationService.validate(seller, OPERATION, UserRole.SELLER);
         validateSellerOwnershipService.validateProduct(seller, product);
+        Objects.requireNonNull(variant, "variant is mandatory");
+        // The state of the product decides first: a discontinued product refuses every variant,
+        // whatever its identifier, and Product.addVariant is the one that says so.
+        if (!product.getStatus().isTerminal() && productRepositoryPort.existsVariant(variant.getIdentifier())) {
+            throw new DuplicateIdentifierException("product variant", variant.getIdentifier());
+        }
         product.addVariant(variant);
         return productRepositoryPort.save(product);
     }

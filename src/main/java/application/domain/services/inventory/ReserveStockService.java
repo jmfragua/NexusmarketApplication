@@ -1,6 +1,7 @@
 package application.domain.services.inventory;
 
 import application.domain.exceptions.DamagedStockException;
+import application.domain.exceptions.DuplicateIdentifierException;
 import application.domain.exceptions.InsufficientStockException;
 import application.domain.models.InventoryItem;
 import application.domain.models.InventoryMovement;
@@ -59,6 +60,9 @@ public class ReserveStockService {
         if (!inventoryItem.canReserve(orderLine.getQuantity())) {
             throw new InsufficientStockException(inventoryItem.getProductId(),
                     inventoryItem.getAvailableQuantity(), orderLine.getQuantity());
+        }
+        if (inventoryMovementRepositoryPort.findById(movementId).isPresent()) {
+            throw new DuplicateIdentifierException("stock movement", movementId);
         }
         InventoryMovement movement = orderLine.reserveStock(inventoryItem, movementId);
         inventoryItemRepositoryPort.save(inventoryItem);

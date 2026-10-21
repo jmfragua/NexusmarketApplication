@@ -11,10 +11,15 @@ import java.math.BigDecimal;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.Immutable;
 
 /**
  * Persistence shape of a line of an order, with the commercial value committed at confirmation time.
  */
+// Immutable: an order line never changes once the order is placed (RD-PED-02).
+// A merge that reaches an existing row, for instance through an identifier reused by another
+// request, can therefore never rewrite it or move it to another parent.
+@Immutable
 @Entity
 @Table(name = "order_lines")
 @Getter

@@ -1,5 +1,6 @@
 package application.domain.services.invoice;
 
+import application.domain.exceptions.DuplicateIdentifierException;
 import application.domain.exceptions.InvalidOrderTransitionException;
 import application.domain.models.Invoice;
 import application.domain.models.Order;
@@ -44,7 +45,10 @@ public class IssueInvoiceService {
         if (order.getStatus() == OrderStatus.CART || order.getStatus() == OrderStatus.PENDING_PAYMENT) {
             throw new InvalidOrderTransitionException(order.getIdentifier(), order.getStatus(), OrderStatus.PAID);
         }
+        if (invoiceRepositoryPort.findById(invoiceId).isPresent()) {
+            throw new DuplicateIdentifierException("invoice", invoiceId);
+        }
         Invoice invoice = Invoice.issueFor(invoiceId, order);
-        return invoiceRepositoryPort.save(invoice);
+        return invoiceRepositoryPort.create(invoice);
     }
 }

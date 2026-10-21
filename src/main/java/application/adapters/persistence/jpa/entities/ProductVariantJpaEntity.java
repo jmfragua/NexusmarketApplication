@@ -15,6 +15,7 @@ import java.util.Map;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.Immutable;
 
 /**
  * Persistence shape of a product variant.
@@ -22,6 +23,10 @@ import lombok.Setter;
  * <p>Its attributes are stored as a name/value map, which mirrors the domain rule that a variant
  * never declares the same characteristic twice: the map key enforces it in storage too.</p>
  */
+// Immutable: a variant is never edited once added: it is removed and replaced (RD-CAT-05).
+// A merge that reaches an existing row, for instance through an identifier reused by another
+// request, can therefore never rewrite it or move it to another parent.
+@Immutable
 @Entity
 @Table(name = "product_variants")
 @Getter

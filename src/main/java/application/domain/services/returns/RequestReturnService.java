@@ -1,5 +1,6 @@
 package application.domain.services.returns;
 
+import application.domain.exceptions.DuplicateIdentifierException;
 import application.domain.exceptions.ReturnNotAllowedException;
 import application.domain.models.Buyer;
 import application.domain.models.Order;
@@ -59,7 +60,10 @@ public class RequestReturnService {
         if (order.getStatus() != OrderStatus.DELIVERED) {
             throw new ReturnNotAllowedException(order.getIdentifier());
         }
+        if (productReturnRepositoryPort.findById(returnId).isPresent()) {
+            throw new DuplicateIdentifierException("product return", returnId);
+        }
         ProductReturn productReturn = buyer.requestReturn(returnId, order, orderLine, quantity);
-        return productReturnRepositoryPort.save(productReturn);
+        return productReturnRepositoryPort.create(productReturn);
     }
 }

@@ -6,6 +6,7 @@ import application.domain.models.Order;
 import application.domain.ports.out.OrderRepositoryPort;
 import application.domain.valuesObjects.BuyerId;
 import application.domain.valuesObjects.OrderId;
+import application.domain.valuesObjects.OrderLineId;
 import application.domain.valuesObjects.OrderStatus;
 import java.util.List;
 import java.util.Objects;
@@ -20,13 +21,23 @@ public class OrderJpaAdapter implements OrderRepositoryPort {
 
     private final SpringDataJpaOrderRepository orderRepository;
 
-    public OrderJpaAdapter(SpringDataJpaOrderRepository orderRepository) {
+    private final JpaInserter jpaInserter;
+
+    public OrderJpaAdapter(SpringDataJpaOrderRepository orderRepository,
+                           JpaInserter jpaInserter) {
         this.orderRepository = Objects.requireNonNull(orderRepository, "the order repository is mandatory");
+        this.jpaInserter = Objects.requireNonNull(jpaInserter, "the inserter is mandatory");
     }
 
     @Override
     public Order save(Order order) {
         orderRepository.save(OrderJpaMapper.toEntity(order));
+        return order;
+    }
+
+    @Override
+    public Order create(Order order) {
+        jpaInserter.insert(OrderJpaMapper.toEntity(order));
         return order;
     }
 
@@ -54,5 +65,10 @@ public class OrderJpaAdapter implements OrderRepositoryPort {
         return orderRepository.findAll().stream()
                 .map(OrderJpaMapper::toDomain)
                 .toList();
+    }
+
+    @Override
+    public boolean existsOrderLine(OrderLineId orderLineId) {
+        return orderRepository.existsByLinesId(orderLineId.getValue());
     }
 }

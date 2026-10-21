@@ -14,6 +14,13 @@ public interface InvoiceRepositoryPort {
 
     Invoice save(Invoice invoice);
 
+    /**
+     * Stores a new invoice. Unlike {@link #save}, it never replaces an existing one: when the
+     * identifier is already taken the storage refuses it, so a creation can never act as an update
+     * (RD-ID-06).
+     */
+    Invoice create(Invoice invoice);
+
     Optional<Invoice> findById(InvoiceId invoiceId);
 
     Optional<Invoice> findByOrder(OrderId orderId);

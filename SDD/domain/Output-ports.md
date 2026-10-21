@@ -26,6 +26,17 @@ ni de almacenamiento de la información.
   (RD-ID-01).
 - **RD-POUT-05.** Las búsquedas que pueden no encontrar resultado devuelven `Optional`; las que
   devuelven colecciones nunca devuelven `null`.
+- **RD-POUT-06.** Crear y actualizar son operaciones distintas. Los puertos de los agregados que se
+  crean con un identificador aportado por quien invoca declaran `create`, cuyo contrato es **no
+  reemplazar nunca** una entidad existente: si el identificador está tomado, el almacenamiento lo
+  rechaza. `save` queda para actualizar lo que ya existe (RD-ID-06). Los declaran `User`, `Seller`,
+  `Warehouse`, `Product`, `InventoryItem`, `Cart`, `Order`, `Invoice`, `Shipment`,
+  `ProductReturn` y `Refund`.
+- **RD-POUT-07.** Las entidades internas de un agregado que se crean con identificador propio se
+  comprueban con consultas de existencia en el puerto de su agregado: `existsVariant`
+  (`ProductRepositoryPort`), `existsCartItem` (`CartRepositoryPort`) y `existsOrderLine`
+  (`OrderRepositoryPort`). Los movimientos de existencias se comprueban con
+  `InventoryMovementRepositoryPort.findById`.
 
 ---
 

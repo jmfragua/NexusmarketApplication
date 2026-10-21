@@ -20,14 +20,24 @@ public class InventoryItemJpaAdapter implements InventoryItemRepositoryPort {
 
     private final SpringDataJpaInventoryItemRepository inventoryItemRepository;
 
-    public InventoryItemJpaAdapter(SpringDataJpaInventoryItemRepository inventoryItemRepository) {
+    private final JpaInserter jpaInserter;
+
+    public InventoryItemJpaAdapter(SpringDataJpaInventoryItemRepository inventoryItemRepository,
+                                   JpaInserter jpaInserter) {
         this.inventoryItemRepository = Objects.requireNonNull(inventoryItemRepository,
                 "the inventory item repository is mandatory");
+        this.jpaInserter = Objects.requireNonNull(jpaInserter, "the inserter is mandatory");
     }
 
     @Override
     public InventoryItem save(InventoryItem inventoryItem) {
         inventoryItemRepository.save(InventoryItemJpaMapper.toEntity(inventoryItem));
+        return inventoryItem;
+    }
+
+    @Override
+    public InventoryItem create(InventoryItem inventoryItem) {
+        jpaInserter.insert(InventoryItemJpaMapper.toEntity(inventoryItem));
         return inventoryItem;
     }
 

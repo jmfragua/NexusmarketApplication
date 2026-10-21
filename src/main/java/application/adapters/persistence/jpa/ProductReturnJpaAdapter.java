@@ -19,14 +19,24 @@ public class ProductReturnJpaAdapter implements ProductReturnRepositoryPort {
 
     private final SpringDataJpaProductReturnRepository productReturnRepository;
 
-    public ProductReturnJpaAdapter(SpringDataJpaProductReturnRepository productReturnRepository) {
+    private final JpaInserter jpaInserter;
+
+    public ProductReturnJpaAdapter(SpringDataJpaProductReturnRepository productReturnRepository,
+                                   JpaInserter jpaInserter) {
         this.productReturnRepository = Objects.requireNonNull(productReturnRepository,
                 "the product return repository is mandatory");
+        this.jpaInserter = Objects.requireNonNull(jpaInserter, "the inserter is mandatory");
     }
 
     @Override
     public ProductReturn save(ProductReturn productReturn) {
         productReturnRepository.save(ProductReturnJpaMapper.toEntity(productReturn));
+        return productReturn;
+    }
+
+    @Override
+    public ProductReturn create(ProductReturn productReturn) {
+        jpaInserter.insert(ProductReturnJpaMapper.toEntity(productReturn));
         return productReturn;
     }
 

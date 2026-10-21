@@ -54,8 +54,8 @@ public class RegisterBuyerService {
         if (userRepositoryPort.existsByIdentityDocument(buyer.getIdentityDocument())) {
             throw new DuplicateIdentityDocumentException(buyer.getIdentityDocument());
         }
-        Buyer registered = userRepositoryPort.save(buyer);
-        cartRepositoryPort.save(new Cart(cartId, registered.getIdentifier()));
+        Buyer registered = userRepositoryPort.create(buyer);
+        cartRepositoryPort.create(new Cart(cartId, registered.getIdentifier()));
         return registered;
     }
 }

@@ -25,6 +25,14 @@ public class InMemoryWarehouseRepository implements WarehouseRepositoryPort {
     }
 
     @Override
+    public Warehouse create(Warehouse warehouse) {
+        if (warehouses.containsKey(warehouse.getIdentifier().getValue())) {
+            throw new IllegalStateException("identifier already taken: " + warehouse.getIdentifier());
+        }
+        return save(warehouse);
+    }
+
+    @Override
     public Optional<Warehouse> findById(WarehouseId warehouseId) {
         return Optional.ofNullable(warehouses.get(warehouseId.getValue()));
     }

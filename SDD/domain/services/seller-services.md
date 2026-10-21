@@ -84,6 +84,7 @@ objetos de valor y delega la construcción en el modelo, que es donde vive la re
 | 1 | Actor activo | Servicio (RG-01) | `UserNotActiveException` |
 | 2 | Rol `ADMINISTRATOR` | Servicio (RD-ROL-06) | `UnauthorizedOperationException` |
 | 3 | Identificador libre | Servicio (RD-ID-02) | `DuplicateUserIdentifierException` |
+| 3b | Identificador de la primera bodega libre | Servicio (RD-ID-06) | `DuplicateIdentifierException` |
 | 4 | Correo único en la plataforma | Servicio (RD-ID-03) | `DuplicateEmailException` |
 | 5 | Documento único en la plataforma | Servicio (RD-ID-04) | `DuplicateIdentityDocumentException` |
 | 6 | El actor es administrador | `Seller.register` (RD-ROL-05) | `IllegalStateException` |
@@ -112,6 +113,7 @@ El vendedor incorporado, con rol fijo `SELLER` y su primera bodega ya registrada
 |---|---|
 | `UnauthorizedOperationException` | El actor no es administrador |
 | `DuplicateUserIdentifierException` | Otro usuario ya tiene ese identificador |
+| `DuplicateIdentifierException` | Ya existe una bodega con el identificador de la primera bodega; no se crea ni el vendedor ni la bodega |
 | `DuplicateEmailException` | El correo ya está registrado |
 | `DuplicateIdentityDocumentException` | El documento ya está registrado |
 | `IllegalArgumentException` | La primera bodega pertenece a otro vendedor |

@@ -1,5 +1,6 @@
 package application.domain.services.catalog;
 
+import application.domain.exceptions.DuplicateIdentifierException;
 import application.domain.models.Product;
 import application.domain.models.Seller;
 import application.domain.ports.out.ProductRepositoryPort;
@@ -44,7 +45,10 @@ public class RegisterProductService {
     public Product register(Seller seller, Product product) {
         validateRoleAuthorizationService.validate(seller, OPERATION, UserRole.SELLER);
         validateSellerOwnershipService.validateProduct(seller, product);
+        if (productRepositoryPort.findById(product.getIdentifier()).isPresent()) {
+            throw new DuplicateIdentifierException("product", product.getIdentifier());
+        }
         seller.registerProduct(product);
-        return productRepositoryPort.save(product);
+        return productRepositoryPort.create(product);
     }
 }

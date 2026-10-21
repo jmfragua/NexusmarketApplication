@@ -1,6 +1,7 @@
 package application.domain.services.cart;
 
 import application.domain.exceptions.BuyerNotAllowedToPurchaseException;
+import application.domain.exceptions.DuplicateIdentifierException;
 import application.domain.exceptions.EmptyCartException;
 import application.domain.models.Buyer;
 import application.domain.models.Cart;
@@ -12,9 +13,12 @@ import application.domain.services.authorization.ValidateBuyerOwnershipService;
 import application.domain.services.authorization.ValidateRoleAuthorizationService;
 import application.domain.valuesObjects.Address;
 import application.domain.valuesObjects.OrderId;
+import application.domain.valuesObjects.OrderLineId;
 import application.domain.valuesObjects.UserRole;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Confirms the provisional selection as an order, which takes it to {@code PENDING_PAYMENT}.
@@ -65,8 +69,28 @@ public class ConfirmCartService {
         if (cart.isEmpty()) {
             throw new EmptyCartException(cart.getIdentifier());
         }
+        requireFreeIdentifiers(orderId, lines);
         Order order = buyer.placeOrder(cart, orderId, deliveryAddress, lines);
+        // The order is stored first: if its creation is refused, the cart has not been emptied yet.
+        Order placedOrder = orderRepositoryPort.create(order);
         cartRepositoryPort.save(cart);
-        return orderRepositoryPort.save(order);
+        return placedOrder;
+    }
+
+    /**
+     * The order and each of its lines need an identifier nobody holds: confirming must never replace
+     * an order, or a line, of another buyer (RD-ID-06).
+     */
+    private void requireFreeIdentifiers(OrderId orderId, List<OrderLine> lines) {
+        Objects.requireNonNull(lines, "the lines of the order are mandatory");
+        if (orderRepositoryPort.findById(orderId).isPresent()) {
+            throw new DuplicateIdentifierException("order", orderId);
+        }
+        Set<OrderLineId> seen = new HashSet<>();
+        for (OrderLine line : lines) {
+            if (!seen.add(line.getIdentifier()) || orderRepositoryPort.existsOrderLine(line.getIdentifier())) {
+                throw new DuplicateIdentifierException("order line", line.getIdentifier());
+            }
+        }
     }
 }

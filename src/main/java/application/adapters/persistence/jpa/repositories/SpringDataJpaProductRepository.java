@@ -9,4 +9,6 @@ public interface SpringDataJpaProductRepository extends JpaRepository<ProductJpa
     List<ProductJpaEntity> findBySellerId(String sellerId);
 
     List<ProductJpaEntity> findByStatus(String status);
+
+    boolean existsByVariantsId(String id);
 }

@@ -1,5 +1,6 @@
 package application.domain.services.shipment;
 
+import application.domain.exceptions.DuplicateIdentifierException;
 import application.domain.exceptions.ShipmentNotAllowedException;
 import application.domain.models.Order;
 import application.domain.models.Product;
@@ -44,10 +45,15 @@ public class PackShipmentService {
         validateRoleAuthorizationService.validate(actor, OPERATION, UserRole.LOGISTICS_OPERATOR);
         Objects.requireNonNull(shipment, "shipment is mandatory");
         Objects.requireNonNull(order, "order is mandatory");
+        if (!shipment.isFor(order)) {
+            // The identifier names the shipment of another order: packing must not take it over.
+            throw new DuplicateIdentifierException("shipment", shipment.getIdentifier());
+        }
         if (!order.containsPhysicalProducts(products)) {
             throw new ShipmentNotAllowedException(order.getIdentifier());
         }
+        boolean alreadyOpened = shipmentRepositoryPort.findById(shipment.getIdentifier()).isPresent();
         shipment.pack(order);
-        return shipmentRepositoryPort.save(shipment);
+        return alreadyOpened ? shipmentRepositoryPort.save(shipment) : shipmentRepositoryPort.create(shipment);
     }
 }

@@ -14,6 +14,13 @@ public interface WarehouseRepositoryPort {
 
     Warehouse save(Warehouse warehouse);
 
+    /**
+     * Stores a new warehouse. Unlike {@link #save}, it never replaces an existing one: when the
+     * identifier is already taken the storage refuses it, so a creation can never act as an update
+     * (RD-ID-06).
+     */
+    Warehouse create(Warehouse warehouse);
+
     Optional<Warehouse> findById(WarehouseId warehouseId);
 
     List<SellerWarehouse> findBySeller(SellerId sellerId);

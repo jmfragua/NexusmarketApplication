@@ -67,6 +67,14 @@ public class DatabaseSeeder implements CommandLineRunner {
                     + "Set nexusmarket.seed.admin.password (or SEED_ADMIN_PASSWORD) to bootstrap one.");
             return;
         }
+        if (userRepositoryPort.findByIdentifier(UserId.of(adminId)).isPresent()
+                || userRepositoryPort.existsByEmail(EmailAddress.of(adminEmail))) {
+            // Never over an existing user: with no administrator left (e.g. after a role change) the
+            // configured identifier or email may belong to someone else, who must not be replaced.
+            LOGGER.error("No administrator exists, but the seed identifier {} or email {} is already taken by "
+                    + "another user. Configure a free SEED_ADMIN_ID and SEED_ADMIN_EMAIL.", adminId, adminEmail);
+            return;
+        }
         StaffUser administrator = StaffUser.of(
                 UserId.of(adminId),
                 FullName.of("Administrador inicial"),
@@ -74,7 +82,7 @@ public class DatabaseSeeder implements CommandLineRunner {
                 IdentityDocument.of(adminDocument),
                 UserRole.ADMINISTRATOR,
                 UserStatus.ACTIVE);
-        userRepositoryPort.save(administrator);
+        userRepositoryPort.create(administrator);
         credentialService.register(administrator.getEmail(), adminPassword);
         LOGGER.info("Initial administrator created with email {}", adminEmail);
     }
