@@ -51,8 +51,9 @@ if (!userRepositoryPort.findByRole(UserRole.ADMINISTRATOR).isEmpty()) {
 - **RD-BOOT-02. Sin contraseña por defecto.** Si `SEED_ADMIN_PASSWORD` está vacía, el seeder **no
   crea nada** y lo advierte en el log. Una contraseña por defecto en el código fuente sería una
   credencial conocida en todo despliegue que olvidara cambiarla.
-- **RD-BOOT-03. Solo el primer administrador.** No siembra productos, vendedores ni datos de
-  ejemplo. Crea lo mínimo para que el sistema sea operable; el resto se da de alta por el API, que
+- **RD-BOOT-03. Solo el primer administrador.** No siembra productos, vendedores, personal ni datos de
+  ejemplo. Los operadores logísticos y los supervisores los incorpora después el administrador con
+  `POST /api/v1/admin/staff` (RD-ROL-09). Crea lo mínimo para que el sistema sea operable; el resto se da de alta por el API, que
   es donde las reglas se aplican.
 - **RD-BOOT-04. Credencial después del usuario.** Primero se persiste el administrador, después su
   credencial, igual que en el registro de compradores: un fallo intermedio no debe dejar una
@@ -60,9 +61,28 @@ if (!userRepositoryPort.findByRole(UserRole.ADMINISTRATOR).isEmpty()) {
 
 ### 2.3 Uso
 
+Con Maven:
+
 ```bash
 SEED_ADMIN_PASSWORD=una-clave-segura ./mvnw spring-boot:run
 ```
+
+Con Docker Compose, las cuatro variables `SEED_ADMIN_*` se leen del entorno o de un archivo `.env`
+en la raíz (plantilla en `.env.example`) y se pasan al contenedor de la aplicación:
+
+```bash
+cp .env.example .env    # escribe SEED_ADMIN_PASSWORD en .env
+docker compose up --build
+```
+
+- **RD-BOOT-05. Compose exige la contraseña.** `docker-compose.yml` declara
+  `${SEED_ADMIN_PASSWORD:?...}`: si falta, Compose se niega a arrancar con un mensaje que nombra la
+  variable. La alternativa —arrancar y dejar solo una advertencia en el log— produce un sistema
+  encendido pero inalcanzable, que es precisamente el fallo que este documento existe para evitar.
+  Las otras tres variables sí tienen valor por defecto, porque no son secretas.
+
+La contraseña solo se usa la primera vez: con un administrador ya creado el seeder no hace nada
+(RD-BOOT-01), así que cambiarla después en `.env` no modifica la credencial existente.
 
 En el log aparece:
 
