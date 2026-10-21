@@ -1,0 +1,172 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-ink: #0b1233;
+  --color-ink-soft: #3d4766;
+  --color-ink-faint: #5d6782;
+  --color-paper: #f2f5fb;
+  --color-card: #ffffff;
+  --color-line: #d6ddeb;
+  --color-line-strong: #b4bfd6;
+
+  --color-cobalt: #1f3fd1;
+  --color-cobalt-deep: #142a99;
+  --color-cobalt-wash: #e7ecff;
+
+  --color-lime: #d4ff3a;
+  --color-lime-wash: #f4ffd0;
+
+  --color-coral: #ff5a4e;
+  --color-coral-deep: #c42d22;
+  --color-coral-wash: #ffe9e6;
+
+  --color-mint: #0e7a5c;
+  --color-mint-wash: #dcf5ec;
+  --color-amber-wash: #fff3d6;
+  --color-amber-ink: #7a4a00;
+
+  --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+
+  --radius-card: 1.25rem;
+
+  --animate-rise: rise 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-pop: pop 360ms cubic-bezier(0.3, 1.5, 0.5, 1) both;
+  --animate-shimmer: shimmer 1.4s linear infinite;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes pop {
+    from {
+      transform: scale(0.6) rotate(var(--sticker-tilt, -8deg));
+    }
+    to {
+      transform: scale(1) rotate(var(--sticker-tilt, -8deg));
+    }
+  }
+  @keyframes shimmer {
+    from {
+      background-position: -200% 0;
+    }
+    to {
+      background-position: 200% 0;
+    }
+  }
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-paper font-sans text-ink antialiased;
+    font-size: 1rem;
+    line-height: 1.55;
+    min-width: 320px;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display text-ink;
+    letter-spacing: -0.02em;
+    line-height: 1.08;
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-cobalt);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  ::selection {
+    background: var(--color-lime);
+    color: var(--color-ink);
+  }
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+  }
+  [hidden] {
+    display: none !important;
+  }
+}
+
+@layer components {
+  /* The one memorable gesture: price tags that look peeled off a sticker sheet. */
+  .sticker {
+    --sticker-tilt: -8deg;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0.9rem 0.55rem;
+    border-radius: 999px;
+    background: var(--color-coral);
+    color: var(--color-ink);
+    font-family: var(--font-display);
+    font-weight: 800;
+    line-height: 1;
+    transform: rotate(var(--sticker-tilt));
+    box-shadow:
+      0 0 0 3px var(--color-card),
+      3px 4px 0 3px var(--color-ink);
+    position: relative;
+  }
+  .sticker::after {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border-radius: inherit;
+    border: 1.5px dashed color-mix(in srgb, var(--color-ink) 45%, transparent);
+    pointer-events: none;
+  }
+  .sticker[data-tone='lime'] {
+    background: var(--color-lime);
+  }
+  .sticker[data-tone='cobalt'] {
+    background: var(--color-cobalt);
+    color: #fff;
+  }
+  .sticker[data-tone='cobalt']::after {
+    border-color: color-mix(in srgb, #fff 55%, transparent);
+  }
+
+  .skeleton {
+    background: linear-gradient(90deg, #e3e8f2 0%, #f4f7fc 50%, #e3e8f2 100%);
+    background-size: 200% 100%;
+    animation: var(--animate-shimmer);
+  }
+
+  .grain {
+    background-image: radial-gradient(color-mix(in srgb, var(--color-ink) 9%, transparent) 1px, transparent 1px);
+    background-size: 14px 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
