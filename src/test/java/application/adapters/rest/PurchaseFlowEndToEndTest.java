@@ -160,9 +160,9 @@ class PurchaseFlowEndToEndTest {
     void publicSurfaceIsLimitedToTheCatalogue() throws Exception {
         mockMvc.perform(get("/api/v1/catalog/products")).andExpect(status().isOk());
 
-        mockMvc.perform(get("/api/v1/buyer/me/cart")).andExpect(status().isForbidden());
-        mockMvc.perform(get("/api/v1/admin/sellers")).andExpect(status().isForbidden());
-        mockMvc.perform(get("/api/v1/supervisor/reports/refunds")).andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/v1/buyer/me/cart")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/admin/sellers")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/supervisor/reports/refunds")).andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -183,7 +183,7 @@ class PurchaseFlowEndToEndTest {
         String tampered = token.substring(0, token.lastIndexOf('.')) + ".forged";
 
         mockMvc.perform(get("/api/v1/buyer/me/orders").header("Authorization", "Bearer " + tampered))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

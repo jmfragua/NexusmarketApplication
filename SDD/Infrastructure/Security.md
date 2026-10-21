@@ -56,7 +56,8 @@ El reparto de responsabilidades en el login queda así:
 | `CredentialService` | Registra y verifica contraseñas con BCrypt |
 | `DomainUserPrincipal` | Transporta el `User` de dominio por el contexto de Spring Security |
 | `JwtAuthenticationFilter` | Autentica cada petición desde su bearer token |
-| `SecurityConfig` | Cadena de filtros sin estado, rutas públicas, `PasswordEncoder` |
+| `SecurityConfig` | Cadena de filtros sin estado, rutas públicas, reglas de rol por prefijo, `PasswordEncoder` |
+| `SecurityErrorResponder` | Responde los rechazos de la cadena con el cuerpo `{status, rule, message}`: 401 y 403 |
 | `ActorResolver` | Reduce `User<?>` al subtipo concreto que exige el puerto |
 
 ---
@@ -86,7 +87,7 @@ falta lógica aparte para resolver el subtipo que los puertos exigen.
 natural sería una caché de vida corta por correo, nunca confiar en el claim.
 
 Si el usuario no existe o está bloqueado, **la autenticación simplemente no se establece**: la
-petición continúa como anónima y las reglas de autorización la rechazan con `401`.
+petición continúa como anónima y `SecurityErrorResponder` la rechaza con `401` (§6.1).
 
 ---
 
@@ -116,11 +117,19 @@ Falla con la excepción de dominio correspondiente, que `GlobalExceptionHandler`
 http.csrf(disable)
     .cors(cors -> cors.configurationSource(corsConfigurationSource))
     .sessionManagement(STATELESS)
+    .exceptionHandling(errors -> errors
+        .authenticationEntryPoint(securityErrorResponder)   // 401
+        .accessDeniedHandler(securityErrorResponder))       // 403
     .authorizeHttpRequests(requests -> requests
         .requestMatchers("/api/v1/auth/**").permitAll()
         .requestMatchers(GET, "/api/v1/catalog/**").permitAll()
         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+        .requestMatchers("/api/v1/buyer/**").hasRole("BUYER")
+        .requestMatchers("/api/v1/seller/**").hasRole("SELLER")
+        .requestMatchers("/api/v1/logistics/**").hasRole("LOGISTICS_OPERATOR")
+        .requestMatchers("/api/v1/admin/**").hasRole("ADMINISTRATOR")
+        .requestMatchers("/api/v1/supervisor/**").hasRole("SUPERVISOR")
         .anyRequest().authenticated())
     .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 ```
@@ -134,9 +143,46 @@ describe un catálogo público, y un visitante debe poder navegarlo antes de reg
 **La documentación abierta** (`/swagger-ui.html`, `/v3/api-docs`) describe el contrato, no expone
 datos. Si se cerrara, nadie podría consultar cómo autenticarse para poder abrirla.
 
+**Reglas de rol por prefijo: defensa en profundidad.** Cada prefijo del API pertenece a un único
+rol, y la cadena lo cierra a los demás antes de llegar al controlador. No sustituye a la validación
+del dominio —`ValidateRoleAuthorizationService` y las de pertenencia siguen ejecutándose en cada
+operación (RD-SRV-05)—: si una regla de URL se configurara mal, el dominio seguiría rechazando. La
+autoridad la aporta `DomainUserPrincipal.authority()` como `ROLE_<rol>`.
+
 ---
 
-## 6.1 CORS: orígenes configurados, nunca comodín
+## 6.1 Respuestas de error de la cadena: 401 y 403 con cuerpo
+
+Sin manejadores propios, Spring Security responde a una petición sin autenticación válida con un
+`403` **sin cuerpo**. Eso contradice el contrato del API y deja al cliente sin forma de distinguir
+una sesión expirada de un rol insuficiente: un token vencido nunca se reconocería como tal.
+
+`SecurityErrorResponder` implementa `AuthenticationEntryPoint` y `AccessDeniedHandler` y responde
+con el mismo cuerpo que `GlobalExceptionHandler` usa para las reglas del dominio:
+
+| Situación | Estado | `rule` |
+|---|---|---|
+| Sin token, token mal formado, firmado con otro secreto o expirado | `401` | `AuthenticationRequired` |
+| Token válido de un usuario que ya no existe o está bloqueado (§4) | `401` | `AuthenticationRequired` |
+| Usuario autenticado cuyo rol no corresponde al prefijo de la ruta | `403` | `AccessDenied` |
+| Usuario autenticado que viola una regla de rol o pertenencia del dominio | `403` | la excepción de dominio, p. ej. `ProductNotOwnedException` |
+
+```json
+{ "status": 401, "rule": "AuthenticationRequired", "message": "authentication is required: ..." }
+```
+
+- **RD-SEC-01.** Toda respuesta de error del API, también las que produce la cadena de seguridad,
+  lleva el cuerpo `{status, rule, message}`.
+- **RD-SEC-02.** `401` significa "no sé quién eres" y `403` "sé quién eres y no puedes". Un usuario
+  bloqueado recibe `401`, no `403`: su token deja de autenticarlo (RG-01).
+
+Las rutas públicas no cambian: el login fallido sigue siendo el rechazo del dominio
+(`403 UnauthorizedOperationException`), porque ocurre en una ruta abierta y lo decide el caso de
+uso, no la cadena.
+
+---
+
+## 6.2 CORS: orígenes configurados, nunca comodín
 
 Un cliente web servido desde otro dominio no puede llamar al API sin CORS. La configuración vive
 en `SecurityConfig.corsConfigurationSource`, aplicada solo a `/api/**`:
@@ -156,8 +202,8 @@ orígenes se declaran por variable de entorno `CORS_ALLOWED_ORIGINS` en desplieg
 
 ## 7. Orden de las operaciones en el registro
 
-Tanto en `/auth/register` como en `/admin/sellers`, la credencial se guarda **después** de que el
-dominio acepte al usuario:
+En `/auth/register`, `/admin/sellers` y `/admin/staff`, la credencial se guarda **después** de que el
+dominio acepte al usuario, siempre con el mismo `CredentialService` (BCrypt):
 
 ```java
 Buyer registered = publicAccessPort.registerBuyer(buyer);   // puede fallar por correo duplicado
@@ -206,5 +252,17 @@ el proveedor:
 El segundo caso es el motivo de la decisión de §4 y la razón por la que el filtro no se conforma con
 el *claim* del token.
 
+`SecurityErrorResponsesTest` cubre §6.1 por HTTP, con la cadena real:
+
+| Caso | Resultado esperado |
+|---|---|
+| Sin token | `401 AuthenticationRequired` con cuerpo JSON |
+| Token mal formado | `401` |
+| Token expirado | `401` |
+| Token válido de un usuario bloqueado después de emitirlo | `401` |
+| Comprador en una ruta de administrador / administrador en una ruta de comprador | `403 AccessDenied` |
+| Catálogo y `/v3/api-docs` sin token | `200` |
+| Login fallido | `403 UnauthorizedOperationException` (sin cambios) |
+
 El ciclo completo por HTTP lo cubre `PurchaseFlowEndToEndTest`, que arranca el contexto real y
-recorre plataforma vacía → pedido pagado, incluido el rechazo de un token manipulado.
+recorre plataforma vacía → pedido pagado, incluido el rechazo (`401`) de un token manipulado.

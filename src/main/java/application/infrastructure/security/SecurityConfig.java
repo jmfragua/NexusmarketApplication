@@ -1,5 +1,6 @@
 package application.infrastructure.security;
 
+import application.domain.valuesObjects.UserRole;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -37,16 +38,27 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    JwtAuthenticationFilter jwtAuthenticationFilter,
-                                                   CorsConfigurationSource corsConfigurationSource) throws Exception {
+                                                   CorsConfigurationSource corsConfigurationSource,
+                                                   SecurityErrorResponder securityErrorResponder) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(errors -> errors
+                        .authenticationEntryPoint(securityErrorResponder)
+                        .accessDeniedHandler(securityErrorResponder))
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/catalog/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+                        // Defence in depth: each role prefix is closed to the other roles here, before
+                        // the domain validates role and ownership again (RG-03).
+                        .requestMatchers("/api/v1/buyer/**").hasRole(UserRole.BUYER.code())
+                        .requestMatchers("/api/v1/seller/**").hasRole(UserRole.SELLER.code())
+                        .requestMatchers("/api/v1/logistics/**").hasRole(UserRole.LOGISTICS_OPERATOR.code())
+                        .requestMatchers("/api/v1/admin/**").hasRole(UserRole.ADMINISTRATOR.code())
+                        .requestMatchers("/api/v1/supervisor/**").hasRole(UserRole.SUPERVISOR.code())
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
