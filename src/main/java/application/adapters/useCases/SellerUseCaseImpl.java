@@ -11,6 +11,7 @@ import application.domain.models.Warehouse;
 import application.domain.ports.in.SellerPort;
 import application.domain.ports.out.InventoryItemRepositoryPort;
 import application.domain.ports.out.ProductRepositoryPort;
+import application.domain.ports.out.WarehouseRepositoryPort;
 import application.domain.services.authorization.ValidateRoleAuthorizationService;
 import application.domain.services.authorization.ValidateSellerOwnershipService;
 import application.domain.services.catalog.AddProductVariantService;
@@ -76,6 +77,8 @@ public class SellerUseCaseImpl implements SellerPort {
 
     private final InventoryItemRepositoryPort inventoryItemRepositoryPort;
 
+    private final WarehouseRepositoryPort warehouseRepositoryPort;
+
     public SellerUseCaseImpl(RegisterProductService registerProductService,
                              PublishProductService publishProductService,
                              SuspendProductService suspendProductService,
@@ -92,7 +95,8 @@ public class SellerUseCaseImpl implements SellerPort {
                              ValidateRoleAuthorizationService validateRoleAuthorizationService,
                              ValidateSellerOwnershipService validateSellerOwnershipService,
                              ProductRepositoryPort productRepositoryPort,
-                             InventoryItemRepositoryPort inventoryItemRepositoryPort) {
+                             InventoryItemRepositoryPort inventoryItemRepositoryPort,
+                             WarehouseRepositoryPort warehouseRepositoryPort) {
         this.registerProductService = Objects.requireNonNull(registerProductService);
         this.publishProductService = Objects.requireNonNull(publishProductService);
         this.suspendProductService = Objects.requireNonNull(suspendProductService);
@@ -110,6 +114,7 @@ public class SellerUseCaseImpl implements SellerPort {
         this.validateSellerOwnershipService = Objects.requireNonNull(validateSellerOwnershipService);
         this.productRepositoryPort = Objects.requireNonNull(productRepositoryPort);
         this.inventoryItemRepositoryPort = Objects.requireNonNull(inventoryItemRepositoryPort);
+        this.warehouseRepositoryPort = Objects.requireNonNull(warehouseRepositoryPort);
     }
 
     /**
@@ -128,11 +133,16 @@ public class SellerUseCaseImpl implements SellerPort {
         return product;
     }
 
+    /**
+     * Resolves a stock record and validates, while loading it, that both its product and its
+     * warehouse are the seller's: a seller never operates on the stock of another (RD-CAT-01, RG-03).
+     */
     @Override
     public InventoryItem consultStockRecord(Seller seller, InventoryItemId inventoryItemId) {
         validateRoleAuthorizationService.validate(seller, "consult stock record", UserRole.SELLER);
-        return inventoryItemRepositoryPort.findById(inventoryItemId)
+        InventoryItem inventoryItem = inventoryItemRepositoryPort.findById(inventoryItemId)
                 .orElseThrow(() -> new EntityNotFoundException("stock record", inventoryItemId));
+        return requireOwnStockRecord(seller, inventoryItem);
     }
 
     @Override
@@ -189,22 +199,40 @@ public class SellerUseCaseImpl implements SellerPort {
     @Override
     public InventoryMovement receiveStock(Seller seller, InventoryItem inventoryItem, Quantity quantity,
                                           InventoryMovementId movementId) {
+        requireOwnStockRecord(seller, inventoryItem);
         return receiveStockService.receive(seller, inventoryItem, quantity, movementId);
     }
 
     @Override
     public InventoryMovement adjustStock(Seller seller, InventoryItem inventoryItem, Quantity newAvailableQuantity,
                                          InventoryMovementId movementId) {
+        requireOwnStockRecord(seller, inventoryItem);
         return adjustStockService.adjust(seller, inventoryItem, newAvailableQuantity, movementId);
     }
 
     @Override
     public InventoryItem markStockAsDamaged(Seller seller, InventoryItem inventoryItem) {
+        requireOwnStockRecord(seller, inventoryItem);
         return markDamagedService.markAsDamaged(seller, inventoryItem);
     }
 
     @Override
     public List<InventoryItem> consultStockOfMyProduct(Seller seller, ProductId productId) {
-        return consultInventoryService.consultByProduct(seller, productId);
+        Product product = consultMyProduct(seller, productId);
+        return consultInventoryService.consultByProduct(seller, product.getIdentifier());
+    }
+
+    /**
+     * The validation lives in the domain ({@link ValidateSellerOwnershipService#validateStockRecord});
+     * this only resolves the product and the warehouse the record points to.
+     */
+    private InventoryItem requireOwnStockRecord(Seller seller, InventoryItem inventoryItem) {
+        Objects.requireNonNull(inventoryItem, "the stock record is mandatory");
+        Product product = productRepositoryPort.findById(inventoryItem.getProductId())
+                .orElseThrow(() -> new EntityNotFoundException("product", inventoryItem.getProductId()));
+        Warehouse warehouse = warehouseRepositoryPort.findById(inventoryItem.getWarehouseId())
+                .orElseThrow(() -> new EntityNotFoundException("warehouse", inventoryItem.getWarehouseId()));
+        validateSellerOwnershipService.validateStockRecord(seller, inventoryItem, product, warehouse);
+        return inventoryItem;
     }
 }

@@ -227,13 +227,15 @@ una pista sobre su existencia.
 
 ## Descripción
 
-Verifica que el producto o la bodega sobre la que actúa el vendedor es suya.
+Verifica que el producto, la bodega o el registro de existencias sobre el que actúa el vendedor es
+suyo.
 
 ## Entrada
 
 ```java
 void validateProduct(Seller seller, Product product);
 void validateWarehouse(Seller seller, Warehouse warehouse);
+void validateStockRecord(Seller seller, InventoryItem inventoryItem, Product product, Warehouse warehouse);
 ```
 
 ## Dependencias
@@ -246,6 +248,21 @@ Ninguna.
 |---|---|---|---|
 | `validateProduct` | `Seller.ownsProduct(product)` | RD-CAT-01 | `ProductNotOwnedException` |
 | `validateWarehouse` | `Seller.ownsWarehouse(warehouse)` | RG-03 | `WarehouseNotOwnedException` |
+| `validateStockRecord` | `validateProduct` y luego `validateWarehouse` | RD-INV-01, RD-CAT-01, RG-03 | `ProductNotOwnedException` / `WarehouseNotOwnedException` |
+
+## Pertenencia de un registro de existencias
+
+Un `InventoryItem` no tiene dueño propio: lo identifican un producto y una bodega (RD-INV-01). Es
+del vendedor **solo si las dos mitades de su clave son suyas**: el producto que cuenta y la bodega
+donde está. `validateStockRecord` recibe ambos ya resueltos —el servicio no tiene puertos— y
+comprueba primero que sean exactamente los del registro (`IllegalArgumentException` si quien
+invoca resolvió otros, porque es un error de programación) y después la pertenencia de cada uno.
+
+Sin esta validación, un vendedor que conociera el identificador de un registro ajeno podía
+registrar ingresos, ajustar o marcar como dañadas las existencias de otro vendedor. La usan
+`SellerPort.consultStockRecord`, que valida mientras carga (RD-PIN-06), y las operaciones
+`receiveStock`, `adjustStock` y `markStockAsDamaged`, que la repiten antes de delegar para que el
+puerto sea seguro reciba el registro de donde lo reciba.
 
 ## Nota sobre las bodegas del marketplace
 

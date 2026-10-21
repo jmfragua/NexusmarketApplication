@@ -165,7 +165,9 @@ public interface SellerPort {
 | `receiveStock` / `adjustStock` | RD-INV-02, RD-INV-04 | `ReceiveStockService`, `AdjustStockService` |
 | `markStockAsDamaged` | RD-INV-03, RD-VO-12 | `MarkDamagedService` |
 | `consultMyProduct` | RD-CAT-01, RG-03 | `ValidateSellerOwnershipService` |
-| `consultStockRecord` | RD-ROL-06 | `ValidateRoleAuthorizationService` |
+| `consultStockRecord` | RD-ROL-06, RD-INV-01, RG-03 | `ValidateRoleAuthorizationService`, `ValidateSellerOwnershipService.validateStockRecord` |
+| `receiveStock` / `adjustStock` / `markStockAsDamaged` (pertenencia) | RG-03 | `ValidateSellerOwnershipService.validateStockRecord` |
+| `consultStockOfMyProduct` | RD-CAT-01, RG-03 | `ValidateSellerOwnershipService.validateProduct` |
 
 `consultMyProduct` valida la pertenencia **mientras carga**: un vendedor que pida el producto de
 otro recibe `ProductNotOwnedException` en la resolución, no en la operación posterior. Es lo que
