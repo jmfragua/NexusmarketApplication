@@ -8,6 +8,7 @@ import application.domain.models.Order;
 import application.domain.models.OrderLine;
 import application.domain.models.Product;
 import application.domain.models.ProductReturn;
+import application.domain.models.Shipment;
 import application.domain.valuesObjects.Address;
 import application.domain.valuesObjects.CartItemId;
 import application.domain.valuesObjects.OrderId;
@@ -67,4 +68,16 @@ public interface BuyerPort {
                                 ProductReturnId returnId);
 
     List<ProductReturn> consultMyReturns(Buyer buyer, Order order);
+
+    // Read only views of the buyer's own information (RD-ROL-04, RD-PED-05)
+
+    /**
+     * @return the buyer's own profile, with the addresses an order can be delivered to.
+     */
+    Buyer consultMyProfile(Buyer buyer);
+
+    /**
+     * @return the shipments of an order of the buyer; empty while it has not been packed.
+     */
+    List<Shipment> consultMyShipments(Buyer buyer, Order order);
 }

@@ -9,6 +9,7 @@ import application.domain.services.user.BlockUserService;
 import application.domain.services.user.ChangeUserRoleService;
 import application.domain.services.user.LoginService;
 import application.domain.services.user.RegisterBuyerService;
+import application.domain.services.user.RegisterStaffUserService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -22,6 +23,13 @@ public class UserServicesConfig {
     public RegisterBuyerService registerBuyerService(UserRepositoryPort userRepositoryPort,
                                                      CartRepositoryPort cartRepositoryPort) {
         return new RegisterBuyerService(userRepositoryPort, cartRepositoryPort);
+    }
+
+    @Bean
+    public RegisterStaffUserService registerStaffUserService(
+            UserRepositoryPort userRepositoryPort,
+            ValidateRoleAuthorizationService validateRoleAuthorizationService) {
+        return new RegisterStaffUserService(userRepositoryPort, validateRoleAuthorizationService);
     }
 
     @Bean

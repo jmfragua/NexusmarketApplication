@@ -2,6 +2,7 @@ package application.domain.services.seller;
 
 import application.domain.exceptions.DuplicateEmailException;
 import application.domain.exceptions.DuplicateIdentityDocumentException;
+import application.domain.exceptions.DuplicateUserIdentifierException;
 import application.domain.models.Seller;
 import application.domain.models.SellerWarehouse;
 import application.domain.models.User;
@@ -60,6 +61,7 @@ public class RegisterSellerService {
      * @param actor          administrator incorporating the seller.
      * @param firstWarehouse first warehouse of the seller, registered along with them.
      * @return the incorporated seller.
+     * @throws DuplicateUserIdentifierException   when another user already holds the identifier (RD-ID-02).
      * @throws DuplicateEmailException            when the email address is already registered.
      * @throws DuplicateIdentityDocumentException when the identity document is already registered.
      */
@@ -71,6 +73,9 @@ public class RegisterSellerService {
                            UserStatus status,
                            SellerWarehouse firstWarehouse) {
         validateRoleAuthorizationService.validate(actor, OPERATION, UserRole.ADMINISTRATOR);
+        if (userRepositoryPort.findByIdentifier(sellerId).isPresent()) {
+            throw new DuplicateUserIdentifierException(sellerId);
+        }
         if (userRepositoryPort.existsByEmail(email)) {
             throw new DuplicateEmailException(email);
         }

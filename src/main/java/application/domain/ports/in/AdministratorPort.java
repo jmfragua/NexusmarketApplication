@@ -6,7 +6,9 @@ import application.domain.models.ProductReturn;
 import application.domain.models.Refund;
 import application.domain.models.Seller;
 import application.domain.models.SellerWarehouse;
+import application.domain.models.StaffUser;
 import application.domain.models.User;
+import application.domain.models.Warehouse;
 import application.domain.valuesObjects.EmailAddress;
 import application.domain.valuesObjects.FullName;
 import application.domain.valuesObjects.Identifier;
@@ -17,6 +19,7 @@ import application.domain.valuesObjects.Money;
 import application.domain.valuesObjects.ProductReturnId;
 import application.domain.valuesObjects.RefundId;
 import application.domain.valuesObjects.SellerId;
+import application.domain.valuesObjects.UserId;
 import application.domain.valuesObjects.UserRole;
 import application.domain.valuesObjects.UserStatus;
 import application.domain.valuesObjects.WarehouseId;
@@ -44,6 +47,15 @@ public interface AdministratorPort {
     Seller consultSeller(User<?> administrator, SellerId sellerId);
 
     List<Seller> consultSellers(User<?> administrator);
+
+    // Incorporation of staff: logistics operators and supervisors (RD-ROL-09)
+
+    StaffUser registerStaffUser(User<?> administrator,
+                                UserId userId,
+                                FullName fullName,
+                                EmailAddress email,
+                                IdentityDocument identityDocument,
+                                UserRole role);
 
     // Operational status and role of the users
 
@@ -79,6 +91,17 @@ public interface AdministratorPort {
                        RefundId refundId);
 
     List<Refund> consultRefunds(User<?> administrator);
+
+    // Read only listings of the information the administrator manages (OBJ-01, OBJ-02, OBJ-04)
+
+    List<User<?>> consultUsers(User<?> administrator);
+
+    List<Warehouse> consultWarehouses(User<?> administrator);
+
+    /**
+     * Resolves the invoice of an order, which a refund is applied upon (RD-POS-02).
+     */
+    Invoice consultInvoiceOfOrder(User<?> administrator, OrderId orderId);
 
     ProductReturn consultReturn(User<?> administrator, ProductReturnId returnId);
 }

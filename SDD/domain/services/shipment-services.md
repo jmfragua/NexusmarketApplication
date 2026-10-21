@@ -203,10 +203,55 @@ Pedido y envío.
 
 ---
 
-## 4. Trazabilidad servicio ↔ código
+# 4. Consult Shipment
+
+**Clase:** `ConsultShipmentService`
+
+## Descripción
+
+Consulta los envíos de un pedido. Es de solo lectura.
+
+## Entrada
+
+```java
+List<Shipment> consultByOrder(User<?> actor, Order order);
+List<Shipment> consultOwn(Buyer buyer, Order order);
+```
+
+## Dependencias
+
+`ShipmentRepositoryPort`, `ValidateRoleAuthorizationService`, `ValidateBuyerOwnershipService`
+
+## Validaciones
+
+- `consultByOrder`: rol `LOGISTICS_OPERATOR`, `ADMINISTRATOR` o `SUPERVISOR`, activo. Son los roles
+  que operan o supervisan la logística.
+- `consultOwn`: rol `BUYER` y el pedido debe ser suyo (RD-PED-05, RD-ROL-04) →
+  `UnauthorizedOperationException` si es de otro comprador.
+
+## Procesamiento
+
+Devuelve los envíos del pedido (`findByOrder`). La lista está **vacía mientras el pedido no se ha
+empacado**: así es como se distingue un pedido pendiente de alistamiento de uno empacado.
+
+Como el envío no tiene estado propio (§2.1), lo que esta consulta aporta es el identificador del
+envío —el que despacho y entrega necesitan—, la bodega de origen y la dirección de destino. El
+avance logístico se lee en el estado del pedido.
+
+## Excepciones
+
+| Excepción | Causa |
+|---|---|
+| `UnauthorizedOperationException` | Rol no autorizado, o pedido de otro comprador |
+| `UserNotActiveException` | El actor está bloqueado |
+
+---
+
+## 5. Trazabilidad servicio ↔ código
 
 | Servicio | Clase Java | Transición del pedido |
 |---|---|---|
 | Pack Shipment | `PackShipmentService` | — (exige `PAID`) |
 | Dispatch Shipment | `DispatchShipmentService` | `PAID → DISPATCHED` |
 | Confirm Shipment Delivery | `ConfirmShipmentDeliveryService` | `DISPATCHED → DELIVERED` |
+| Consult Shipment | `ConsultShipmentService` | — (solo lectura) |

@@ -25,6 +25,7 @@ import application.domain.services.inventory.ReserveStockService;
 import application.domain.services.inventory.RestockReturnService;
 import application.domain.services.order.ConsultOrderService;
 import application.domain.services.shipment.ConfirmShipmentDeliveryService;
+import application.domain.services.shipment.ConsultShipmentService;
 import application.domain.services.shipment.DispatchShipmentService;
 import application.domain.services.shipment.PackShipmentService;
 import application.domain.services.warehouse.ConsultWarehouseService;
@@ -83,6 +84,8 @@ public class LogisticOperatorUseCaseImpl implements LogisticOperatorPort {
 
     private final ProductReturnRepositoryPort productReturnRepositoryPort;
 
+    private final ConsultShipmentService consultShipmentService;
+
     public LogisticOperatorUseCaseImpl(ConsultWarehouseService consultWarehouseService,
                                        ConsultInventoryService consultInventoryService,
                                        ReceiveStockService receiveStockService,
@@ -99,7 +102,8 @@ public class LogisticOperatorUseCaseImpl implements LogisticOperatorPort {
                                        InventoryItemRepositoryPort inventoryItemRepositoryPort,
                                        ShipmentRepositoryPort shipmentRepositoryPort,
                                        ProductRepositoryPort productRepositoryPort,
-                                       ProductReturnRepositoryPort productReturnRepositoryPort) {
+                                       ProductReturnRepositoryPort productReturnRepositoryPort,
+                                       ConsultShipmentService consultShipmentService) {
         this.consultWarehouseService = Objects.requireNonNull(consultWarehouseService);
         this.consultInventoryService = Objects.requireNonNull(consultInventoryService);
         this.receiveStockService = Objects.requireNonNull(receiveStockService);
@@ -117,6 +121,7 @@ public class LogisticOperatorUseCaseImpl implements LogisticOperatorPort {
         this.shipmentRepositoryPort = Objects.requireNonNull(shipmentRepositoryPort);
         this.productRepositoryPort = Objects.requireNonNull(productRepositoryPort);
         this.productReturnRepositoryPort = Objects.requireNonNull(productReturnRepositoryPort);
+        this.consultShipmentService = Objects.requireNonNull(consultShipmentService);
     }
 
     /**
@@ -270,5 +275,10 @@ public class LogisticOperatorUseCaseImpl implements LogisticOperatorPort {
     private InventoryItem requireStockRecord(InventoryItemId inventoryItemId) {
         return inventoryItemRepositoryPort.findById(inventoryItemId)
                 .orElseThrow(() -> new EntityNotFoundException("stock record", inventoryItemId));
+    }
+
+    @Override
+    public List<Shipment> consultShipmentsOfOrder(User<?> operator, Order order) {
+        return consultShipmentService.consultByOrder(operator, order);
     }
 }

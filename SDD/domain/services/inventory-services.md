@@ -174,7 +174,8 @@ Todo servicio de inventario que modifica estado sigue exactamente esta secuencia
    sin el otro, porque no existe cambio de existencias sin movimiento (RD-INV-04).
 
 **Roles autorizados.** La administración del inventario es responsabilidad compartida entre
-`SELLER` y `LOGISTICS_OPERATOR` (RD-ROL-06). El rol `BUYER` está deliberadamente ausente de todo
+`SELLER` y `LOGISTICS_OPERATOR` (RD-ROL-06). La apertura de registros (`OpenStockRecordService`) es
+la excepción: hoy la expone solo el vendedor, sobre sus propios productos y bodegas (§9). El rol `BUYER` está deliberadamente ausente de todo
 este subdominio: un comprador nunca administra inventarios (RD-ROL-04).
 
 ---
@@ -683,7 +684,98 @@ inventarios (RD-ROL-04). No es un olvido, es la regla.
 
 ---
 
-## 9. Trazabilidad servicio ↔ código
+# 9. Open Stock Record
+
+**Clase:** `OpenStockRecordService`
+
+## Descripción
+
+Abre el registro de existencias de un producto en una bodega: el `InventoryItem` sobre el que operan
+después el ingreso, la reserva, la salida, el ajuste, el daño y la devolución. Sin esta operación
+ninguno de los demás servicios del subdominio tiene sobre qué actuar.
+
+## Entrada
+
+```java
+InventoryItem open(Seller seller,
+                   Product product,
+                   Warehouse warehouse,
+                   InventoryItemId inventoryItemId)
+```
+
+| Parámetro | Tipo | Descripción |
+|---|---|---|
+| `seller` | `Seller` | Vendedor autenticado, dueño del producto y de la bodega |
+| `product` | `Product` | Producto físico, no descontinuado |
+| `warehouse` | `Warehouse` | Una de las bodegas propias del vendedor |
+| `inventoryItemId` | `InventoryItemId` | Identificador del nuevo registro, aportado por quien invoca (RD-POUT-04) |
+
+## Dependencias
+
+`InventoryItemRepositoryPort`, `ValidateRoleAuthorizationService`, `ValidateSellerOwnershipService`
+
+## Validación del usuario
+
+- Rol `SELLER`, activo (RG-01, RD-ROL-06).
+
+## Validación de pertenencia
+
+- El producto pertenece al vendedor (RD-CAT-01) → si no, `ProductNotOwnedException`.
+- La bodega es una `SellerWarehouse` del vendedor (RG-03) → si es de otro vendedor o del
+  marketplace, `WarehouseNotOwnedException`.
+
+## Validación del producto
+
+- Debe requerir inventario: un producto digital nunca genera existencias (RD-INV-05) →
+  `StockRecordNotAllowedException`.
+- No puede estar descontinuado, que es un estado terminal (RD-CAT-04) →
+  `StockRecordNotAllowedException`. Un producto suspendido sí admite registro: la suspensión es
+  temporal y el vendedor puede preparar existencias antes de volver a publicar.
+
+## Validación de unicidad
+
+- El par (producto, bodega) no puede tener ya un registro (RD-ID-05) →
+  `DuplicateInventoryItemException`.
+- El identificador no puede estar en uso → `DuplicateInventoryItemException`. Sin esta comprobación,
+  guardar un registro con un identificador existente sobrescribiría las existencias de otro.
+
+Ambas se verifican contra el repositorio antes de invocar el modelo (RD-SRV-06). Después,
+`Warehouse.addInventoryItem` vincula el registro a la bodega, que es donde el modelo protege la misma
+regla para los registros que conoce.
+
+## Procesamiento
+
+1. Construye `new InventoryItem(id, productId, warehouseId)`: disponible 0, reservado 0, condición
+   `AVAILABLE`.
+2. Lo vincula a la bodega y lo persiste.
+
+**Sin movimiento.** Abrir el registro no cambia ninguna cantidad, así que no genera
+`InventoryMovement`: RD-INV-04 rige los cambios de existencias, y el primero será el `INBOUND` del
+ingreso posterior.
+
+## Estado resultante
+
+```text
+availableQuantity : 0
+reservedQuantity  : 0
+condition         : AVAILABLE
+movements         : ninguno
+```
+
+## Excepciones
+
+| Excepción | Causa |
+|---|---|
+| `UserNotActiveException` | El vendedor está bloqueado |
+| `UnauthorizedOperationException` | El actor no es vendedor |
+| `ProductNotOwnedException` | El producto es de otro vendedor |
+| `WarehouseNotOwnedException` | La bodega es de otro vendedor o del marketplace |
+| `StockRecordNotAllowedException` | Producto digital o descontinuado |
+| `DuplicateInventoryItemException` | Ya existe registro para el par, o el identificador está en uso |
+
+---
+
+## 10. Trazabilidad servicio ↔ código
 
 | Servicio | Clase Java | Movimiento generado |
 |---|---|---|
@@ -695,3 +787,4 @@ inventarios (RD-ROL-04). No es un olvido, es la regla.
 | Mark Damaged | `MarkDamagedService` | — (cambia condición) |
 | Restock Return | `RestockReturnService` | `RETURN` |
 | Consult Inventory | `ConsultInventoryService` | — (solo lectura) |
+| Open Stock Record | `OpenStockRecordService` | — (abre el registro vacío) |

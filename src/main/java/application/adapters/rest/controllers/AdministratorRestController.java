@@ -4,6 +4,7 @@ import application.adapters.rest.dtos.requests.ChangeUserRoleRequest;
 import application.adapters.rest.dtos.requests.IssueInvoiceRequest;
 import application.adapters.rest.dtos.requests.IssueRefundRequest;
 import application.adapters.rest.dtos.requests.RegisterSellerRequest;
+import application.adapters.rest.dtos.requests.RegisterStaffRequest;
 import application.adapters.rest.dtos.requests.RegisterWarehouseRequest;
 import application.adapters.rest.dtos.responses.InvoiceResponse;
 import application.adapters.rest.dtos.responses.PageResponse;
@@ -17,6 +18,7 @@ import application.adapters.rest.mappers.InventoryRestMapper;
 import application.adapters.rest.mappers.UserRestMapper;
 import application.domain.models.Seller;
 import application.domain.models.SellerWarehouse;
+import application.domain.models.StaffUser;
 import application.domain.models.User;
 import application.domain.ports.in.AdministratorPort;
 import application.domain.valuesObjects.EmailAddress;
@@ -91,6 +93,26 @@ public class AdministratorRestController {
         return ResponseEntity.status(HttpStatus.CREATED).body(UserRestMapper.toResponse(seller));
     }
 
+    // Staff
+
+    /**
+     * Incorporates a logistics operator or a supervisor (RD-ROL-09). As with sellers, the credential
+     * is stored only after the domain accepted the user, so a rejection leaves no orphan password.
+     */
+    @PostMapping("/staff")
+    public ResponseEntity<UserResponse> registerStaff(@AuthenticationPrincipal DomainUserPrincipal principal,
+                                                      @Valid @RequestBody RegisterStaffRequest request) {
+        StaffUser staffUser = administratorPort.registerStaffUser(
+                principal.user(),
+                UserId.of(request.userId()),
+                FullName.of(request.fullName()),
+                EmailAddress.of(request.email()),
+                IdentityDocument.of(request.identityDocument()),
+                UserRole.valueOf(request.role()));
+        credentialService.register(staffUser.getEmail(), request.password());
+        return ResponseEntity.status(HttpStatus.CREATED).body(UserRestMapper.toResponse(staffUser));
+    }
+
     @GetMapping("/sellers")
     public ResponseEntity<PageResponse<SellerResponse>> consultSellers(
             @AuthenticationPrincipal DomainUserPrincipal principal,
@@ -109,6 +131,16 @@ public class AdministratorRestController {
     }
 
     // Users
+
+    @GetMapping("/users")
+    public ResponseEntity<PageResponse<UserResponse>> consultUsers(
+            @AuthenticationPrincipal DomainUserPrincipal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(PageResponse.of(administratorPort.consultUsers(principal.user()).stream()
+                .map(user -> UserRestMapper.toResponse((User<?>) user))
+                .toList(), page, size));
+    }
 
     @PostMapping("/users/{userId}/block")
     public ResponseEntity<UserResponse> blockUser(@AuthenticationPrincipal DomainUserPrincipal principal,
@@ -134,6 +166,16 @@ public class AdministratorRestController {
 
     // Marketplace warehouses
 
+    @GetMapping("/warehouses")
+    public ResponseEntity<PageResponse<WarehouseResponse>> consultWarehouses(
+            @AuthenticationPrincipal DomainUserPrincipal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(PageResponse.of(administratorPort.consultWarehouses(principal.user()).stream()
+                .map(InventoryRestMapper::toResponse)
+                .toList(), page, size));
+    }
+
     @PostMapping("/warehouses")
     public ResponseEntity<WarehouseResponse> registerMarketplaceWarehouse(
             @AuthenticationPrincipal DomainUserPrincipal principal,
@@ -150,6 +192,17 @@ public class AdministratorRestController {
      * it so the administrator never has to step outside it, and the domain service behind it still
      * validates the role, which is where the rule lives.
      */
+    /**
+     * The invoice of an order, which a refund is applied upon (RD-POS-02). 404 when the order does
+     * not exist or has not been invoiced yet.
+     */
+    @GetMapping("/orders/{orderId}/invoice")
+    public ResponseEntity<InvoiceResponse> consultInvoiceOfOrder(@AuthenticationPrincipal DomainUserPrincipal principal,
+                                                                 @PathVariable String orderId) {
+        return ResponseEntity.ok(AfterSalesRestMapper.toResponse(
+                administratorPort.consultInvoiceOfOrder(principal.user(), OrderId.of(orderId))));
+    }
+
     @PostMapping("/invoices")
     public ResponseEntity<InvoiceResponse> issueInvoice(@AuthenticationPrincipal DomainUserPrincipal principal,
                                                         @Valid @RequestBody IssueInvoiceRequest request) {

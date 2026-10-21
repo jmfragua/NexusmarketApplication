@@ -39,7 +39,7 @@ probarse sin saber que existen Spring, MySQL o MongoDB.
    │                                                                            │
    │   domain/models          Entidades con identidad y comportamiento          │
    │   domain/valuesObjects   Objetos de valor inmutables y enumeraciones        │
-   │   domain/services        49 servicios, uno por caso de uso                 │
+   │   domain/services        52 servicios, uno por caso de uso                 │
    │   domain/exceptions      Una excepción por regla de negocio                │
    │                                                                            │
    │              Cero dependencias de framework. Java puro.                    │
@@ -71,11 +71,11 @@ src/main/java/application/
 ├── domain/
 │   ├── models/              23 archivos (DomainEntity + 22 entidades)
 │   ├── valuesObjects/       37 objetos de valor y enumeraciones
-│   ├── exceptions/          21 excepciones de dominio
+│   ├── exceptions/          24 excepciones de dominio
 │   ├── ports/
 │   │   ├── in/               6 puertos de entrada (uno por rol)
 │   │   └── out/             13 puertos de salida (uno por agregado)
-│   └── services/            49 servicios de dominio
+│   └── services/            52 servicios de dominio
 │       ├── authorization/   4      ├── order/        4
 │       ├── user/            5      ├── invoice/      2
 │       ├── seller/          2      ├── shipment/     3
@@ -143,23 +143,23 @@ infraestructura y no contamina los puertos de salida.
 |---|---:|---|---|
 | `domain/models` | 23 | Implementada | [Domain Model.md](../domain/Domain%20Model.md) |
 | `domain/valuesObjects` | 37 | Implementada | [Domain Value Objects.md](../domain/Domain%20Value%20Objects.md) |
-| `domain/exceptions` | 20 | Implementada | [Domain Services.md](../domain/Domain%20Services.md) §5 |
+| `domain/exceptions` | 24 | Implementada | [Domain Services.md](../domain/Domain%20Services.md) §5 |
 | `domain/ports/in` | 6 | Implementada | [Input-ports.md](../domain/Input-ports.md) |
 | `domain/ports/out` | 13 | Implementada | [Output-ports.md](../domain/Output-ports.md) |
-| `domain/services` | 49 | Implementada | [Domain Services.md](../domain/Domain%20Services.md) |
+| `domain/services` | 52 | Implementada | [Domain Services.md](../domain/Domain%20Services.md) |
 | `adapters/useCases` | 6 | Implementada | [Use-cases-adapters.md](../Adapters/Use-cases-adapters.md) |
 | `adapters/persistence` | 51 | Implementada | [Persistence-adapters.md](../Adapters/Persistence-adapters.md) |
-| `adapters/rest` | 50 | Implementada | [Rest-adapters.md](../Adapters/Rest-adapters.md) · [Api-rest-endpoints.md](../Adapters/Api-rest-endpoints.md) |
-| `infrastructure/config` | 14 | Implementada | §5.1 |
-| `infrastructure/security` | 9 | Implementada | [Security.md](../Infrastructure/Security.md) |
+| `adapters/rest` | 53 | Implementada | [Rest-adapters.md](../Adapters/Rest-adapters.md) · [Api-rest-endpoints.md](../Adapters/Api-rest-endpoints.md) |
+| `infrastructure/config` | 15 | Implementada | §5.1 |
+| `infrastructure/security` | 10 | Implementada | [Security.md](../Infrastructure/Security.md) |
 | `infrastructure/seed` | 1 | Implementada | [Bootstrap.md](../Infrastructure/Bootstrap.md) |
-| Pruebas | 17 archivos / 77 tests | Implementadas | §6 |
+| Pruebas | 32 archivos / 189 tests | Implementadas | §6 |
 
-**Total:** 280 archivos de producción.
+**Total:** 292 archivos de producción (incluida la clase `NexusmarketApplication`).
 
 ### 5.1 Exposición de los servicios de dominio como beans
 
-Los 49 servicios de dominio son clases Java planas, sin anotación alguna de framework: es
+Los 52 servicios de dominio son clases Java planas, sin anotación alguna de framework: es
 precisamente lo que mantiene el dominio libre de Spring (RD-SRV-02). Su cableado vive en 14 clases
 `@Configuration` bajo `infrastructure/config`, una por área de servicio, con un `@Bean` por
 servicio.

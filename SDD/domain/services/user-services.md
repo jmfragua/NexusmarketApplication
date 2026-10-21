@@ -105,8 +105,12 @@ El comprador llega ya construido y validado por el modelo: `FullName`, `EmailAdd
 
 ## Validaciones
 
-1. **Unicidad del correo**: `existsByEmail` → `DuplicateEmailException` (RD-ID-03).
-2. **Unicidad del documento**: `existsByIdentityDocument` → `DuplicateIdentityDocumentException`
+1. **Unicidad del identificador**: `findByIdentifier` → `DuplicateUserIdentifierException`
+   (RD-ID-02). El identificador lo elige el cliente; sin esta comprobación, guardar el comprador
+   **reemplazaría** al usuario que ya lo tuviera. Así ocurría: un visitante anónimo podía
+   registrarse con el identificador del administrador y convertirlo en un comprador propio.
+2. **Unicidad del correo**: `existsByEmail` → `DuplicateEmailException` (RD-ID-03).
+3. **Unicidad del documento**: `existsByIdentityDocument` → `DuplicateIdentityDocumentException`
    (RD-ID-04).
 
 ## Procesamiento
@@ -135,6 +139,7 @@ entidades nuevas (RD-POUT-04); el adaptador REST lo genera al registrar.
 
 | Excepción | Causa |
 |---|---|
+| `DuplicateUserIdentifierException` | Otro usuario ya tiene ese identificador |
 | `DuplicateEmailException` | El correo ya está registrado |
 | `DuplicateIdentityDocumentException` | El documento ya está registrado |
 
@@ -314,6 +319,68 @@ etapa.
 
 ---
 
+# 6. Register Staff User
+
+**Clase:** `RegisterStaffUserService`
+
+## Descripción
+
+Incorpora a un operador logístico o a un supervisor por decisión del administrador. Sin esta
+operación esos dos roles no podrían existir: los compradores se autoregistran, los vendedores los
+incorpora el administrador con su primera bodega (RD-ROL-05) y el primer administrador lo crea el
+arranque. Nada más construye un `StaffUser` (RD-ROL-07).
+
+## Entrada
+
+```java
+StaffUser register(User<?> actor,
+                   UserId userId,
+                   FullName fullName,
+                   EmailAddress email,
+                   IdentityDocument identityDocument,
+                   UserRole role)
+```
+
+## Dependencias
+
+`UserRepositoryPort`, `ValidateRoleAuthorizationService`
+
+## Validaciones
+
+1. **Actor**: activo y con rol `ADMINISTRATOR` (RG-01, OBJ-01).
+2. **Rol incorporable**: solo `LOGISTICS_OPERATOR` o `SUPERVISOR` (RD-ROL-09) →
+   `StaffRoleNotAllowedException`.
+3. **Unicidad** del identificador (RD-ID-02), del correo (RD-ID-03) y del documento (RD-ID-04).
+
+## Procesamiento
+
+1. `StaffUser.of(..., role, ACTIVE)`: la fábrica vuelve a rechazar `BUYER` y `SELLER`.
+2. Persiste el usuario con `UserRepositoryPort.save`.
+
+La contraseña no pasa por aquí: el dominio no conoce credenciales (RD-ALC-01). El adaptador REST la
+registra con el mismo `CredentialService` (BCrypt) que al resto de usuarios, **después** de que el
+dominio acepta el alta.
+
+## Por qué no incorpora administradores
+
+Un administrador concentra el poder de crear vendedores, bloquear usuarios y emitir reembolsos. Su
+número se mantiene acotado deliberadamente: el primero lo crea el arranque (RD-BOOT-02) y los demás
+surgen de promover a personal ya existente con `ChangeUserRoleService` (RD-ROL-08), una decisión
+explícita sobre alguien que ya opera en la plataforma.
+
+## Excepciones
+
+| Excepción | Causa |
+|---|---|
+| `UnauthorizedOperationException` | El actor no es administrador |
+| `UserNotActiveException` | El administrador está bloqueado |
+| `StaffRoleNotAllowedException` | Rol distinto de operador logístico o supervisor |
+| `DuplicateUserIdentifierException` | Otro usuario ya tiene ese identificador |
+| `DuplicateEmailException` | El correo ya está registrado |
+| `DuplicateIdentityDocumentException` | El documento ya está registrado |
+
+---
+
 ## 4. Trazabilidad servicio ↔ código
 
 | Servicio | Clase Java | Rol requerido |
@@ -321,6 +388,7 @@ etapa.
 | Register Buyer | `RegisterBuyerService` | — (público) |
 | Block User | `BlockUserService` | `ADMINISTRATOR` |
 | Activate User | `ActivateUserService` | `ADMINISTRATOR` |
+| Register Staff User | `RegisterStaffUserService` | `ADMINISTRATOR` |
 | Change User Role | `ChangeUserRoleService` | `ADMINISTRATOR` |
 | Login | `LoginService` | — (público) |
 

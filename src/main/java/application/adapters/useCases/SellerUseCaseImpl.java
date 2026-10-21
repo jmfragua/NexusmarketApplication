@@ -23,6 +23,7 @@ import application.domain.services.catalog.SuspendProductService;
 import application.domain.services.inventory.AdjustStockService;
 import application.domain.services.inventory.ConsultInventoryService;
 import application.domain.services.inventory.MarkDamagedService;
+import application.domain.services.inventory.OpenStockRecordService;
 import application.domain.services.inventory.ReceiveStockService;
 import application.domain.services.warehouse.ConsultWarehouseService;
 import application.domain.valuesObjects.InventoryItemId;
@@ -57,6 +58,8 @@ public class SellerUseCaseImpl implements SellerPort {
 
     private final ConsultWarehouseService consultWarehouseService;
 
+    private final OpenStockRecordService openStockRecordService;
+
     private final ReceiveStockService receiveStockService;
 
     private final AdjustStockService adjustStockService;
@@ -81,6 +84,7 @@ public class SellerUseCaseImpl implements SellerPort {
                              RemoveProductVariantService removeProductVariantService,
                              ConsultCatalogService consultCatalogService,
                              ConsultWarehouseService consultWarehouseService,
+                             OpenStockRecordService openStockRecordService,
                              ReceiveStockService receiveStockService,
                              AdjustStockService adjustStockService,
                              MarkDamagedService markDamagedService,
@@ -97,6 +101,7 @@ public class SellerUseCaseImpl implements SellerPort {
         this.removeProductVariantService = Objects.requireNonNull(removeProductVariantService);
         this.consultCatalogService = Objects.requireNonNull(consultCatalogService);
         this.consultWarehouseService = Objects.requireNonNull(consultWarehouseService);
+        this.openStockRecordService = Objects.requireNonNull(openStockRecordService);
         this.receiveStockService = Objects.requireNonNull(receiveStockService);
         this.adjustStockService = Objects.requireNonNull(adjustStockService);
         this.markDamagedService = Objects.requireNonNull(markDamagedService);
@@ -173,6 +178,12 @@ public class SellerUseCaseImpl implements SellerPort {
     @Override
     public Warehouse consultMyWarehouse(Seller seller, WarehouseId warehouseId) {
         return consultWarehouseService.consultOwn(seller, warehouseId);
+    }
+
+    @Override
+    public InventoryItem openStockRecord(Seller seller, Product product, Warehouse warehouse,
+                                         InventoryItemId inventoryItemId) {
+        return openStockRecordService.open(seller, product, warehouse, inventoryItemId);
     }
 
     @Override

@@ -7,6 +7,7 @@ import application.domain.exceptions.DomainException;
 import application.domain.exceptions.DuplicateEmailException;
 import application.domain.exceptions.DuplicateIdentityDocumentException;
 import application.domain.exceptions.DuplicateInventoryItemException;
+import application.domain.exceptions.DuplicateUserIdentifierException;
 import application.domain.exceptions.EmptyCartException;
 import application.domain.exceptions.EntityNotFoundException;
 import application.domain.exceptions.InsufficientStockException;
@@ -17,6 +18,8 @@ import application.domain.exceptions.OrderNotModifiableException;
 import application.domain.exceptions.ProductNotAvailableException;
 import application.domain.exceptions.ProductNotOwnedException;
 import application.domain.exceptions.RefundExceedsInvoiceException;
+import application.domain.exceptions.StaffRoleNotAllowedException;
+import application.domain.exceptions.StockRecordNotAllowedException;
 import application.domain.exceptions.ReturnNotAllowedException;
 import application.domain.exceptions.UnauthorizedOperationException;
 import application.domain.exceptions.UserNotActiveException;
@@ -64,9 +67,12 @@ public class GlobalExceptionHandler {
             Map.entry(EmptyCartException.class, HttpStatus.CONFLICT),
             Map.entry(DuplicateEmailException.class, HttpStatus.CONFLICT),
             Map.entry(DuplicateIdentityDocumentException.class, HttpStatus.CONFLICT),
+            Map.entry(DuplicateUserIdentifierException.class, HttpStatus.CONFLICT),
             Map.entry(DuplicateInventoryItemException.class, HttpStatus.CONFLICT),
+            Map.entry(StockRecordNotAllowedException.class, HttpStatus.CONFLICT),
             Map.entry(InvalidRoleChangeException.class, HttpStatus.CONFLICT),
-            Map.entry(RefundExceedsInvoiceException.class, HttpStatus.BAD_REQUEST));
+            Map.entry(RefundExceedsInvoiceException.class, HttpStatus.BAD_REQUEST),
+            Map.entry(StaffRoleNotAllowedException.class, HttpStatus.BAD_REQUEST));
 
     @ExceptionHandler(DomainException.class)
     public ResponseEntity<ErrorResponse> handleDomainException(DomainException exception) {

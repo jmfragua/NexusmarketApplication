@@ -30,6 +30,7 @@ import application.domain.services.inventory.AdjustStockService;
 import application.domain.services.inventory.ConsultInventoryService;
 import application.domain.services.inventory.IssueForSaleService;
 import application.domain.services.inventory.MarkDamagedService;
+import application.domain.services.inventory.OpenStockRecordService;
 import application.domain.services.inventory.ReceiveStockService;
 import application.domain.services.inventory.ReleaseReservationService;
 import application.domain.services.inventory.ReserveStockService;
@@ -125,6 +126,10 @@ public final class ServiceHarness {
     }
 
     // Inventory
+
+    public OpenStockRecordService openStockRecord() {
+        return new OpenStockRecordService(inventoryItems, validateRole, validateSellerOwnership);
+    }
 
     public ReceiveStockService receiveStock() {
         return new ReceiveStockService(inventoryItems, inventoryMovements, validateRole);

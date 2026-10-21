@@ -9,6 +9,7 @@ import application.domain.models.Order;
 import application.domain.models.OrderLine;
 import application.domain.models.Product;
 import application.domain.models.ProductReturn;
+import application.domain.models.Shipment;
 import application.domain.ports.in.BuyerPort;
 import application.domain.ports.out.CartRepositoryPort;
 import application.domain.ports.out.UserRepositoryPort;
@@ -23,6 +24,7 @@ import application.domain.services.order.ConfirmPaymentService;
 import application.domain.services.order.ConsultOrderService;
 import application.domain.services.returns.ConsultReturnService;
 import application.domain.services.returns.RequestReturnService;
+import application.domain.services.shipment.ConsultShipmentService;
 import application.domain.valuesObjects.Address;
 import application.domain.valuesObjects.CartItemId;
 import application.domain.valuesObjects.OrderId;
@@ -75,6 +77,8 @@ public class BuyerUseCaseImpl implements BuyerPort {
 
     private final ConsultReturnService consultReturnService;
 
+    private final ConsultShipmentService consultShipmentService;
+
     public BuyerUseCaseImpl(UserRepositoryPort userRepositoryPort,
                             CartRepositoryPort cartRepositoryPort,
                             ValidateRoleAuthorizationService validateRoleAuthorizationService,
@@ -87,7 +91,8 @@ public class BuyerUseCaseImpl implements BuyerPort {
                             ConsultOrderService consultOrderService,
                             ConsultInvoiceService consultInvoiceService,
                             RequestReturnService requestReturnService,
-                            ConsultReturnService consultReturnService) {
+                            ConsultReturnService consultReturnService,
+                            ConsultShipmentService consultShipmentService) {
         this.userRepositoryPort = Objects.requireNonNull(userRepositoryPort);
         this.cartRepositoryPort = Objects.requireNonNull(cartRepositoryPort);
         this.validateRoleAuthorizationService = Objects.requireNonNull(validateRoleAuthorizationService);
@@ -101,6 +106,7 @@ public class BuyerUseCaseImpl implements BuyerPort {
         this.consultInvoiceService = Objects.requireNonNull(consultInvoiceService);
         this.requestReturnService = Objects.requireNonNull(requestReturnService);
         this.consultReturnService = Objects.requireNonNull(consultReturnService);
+        this.consultShipmentService = Objects.requireNonNull(consultShipmentService);
     }
 
     @Override
@@ -186,5 +192,17 @@ public class BuyerUseCaseImpl implements BuyerPort {
     @Override
     public List<ProductReturn> consultMyReturns(Buyer buyer, Order order) {
         return consultReturnService.consultOwn(buyer, order);
+    }
+
+    @Override
+    public Buyer consultMyProfile(Buyer buyer) {
+        validateRoleAuthorizationService.validate(buyer, "consult own profile", UserRole.BUYER);
+        return userRepositoryPort.findBuyerById(buyer.getIdentifier())
+                .orElseThrow(() -> new EntityNotFoundException("buyer", buyer.getIdentifier()));
+    }
+
+    @Override
+    public List<Shipment> consultMyShipments(Buyer buyer, Order order) {
+        return consultShipmentService.consultOwn(buyer, order);
     }
 }

@@ -45,20 +45,20 @@ Ubicación en el código: `src/main/java/application/domain/services/`.
 
 ## 3. Áreas de servicio
 
-Los 49 servicios se agrupan en 14 áreas, una subcarpeta por área:
+Los 52 servicios se agrupan en 14 áreas, una subcarpeta por área:
 
 | Área | Servicios | Documento | Responsabilidad |
 |---|:---:|---|---|
 | `authorization/` | 4 | [authorization-services.md](services/authorization-services.md) | Rol, estado activo y pertenencia del recurso |
-| `user/` | 5 | [user-services.md](services/user-services.md) | Alta de comprador, estado y rol de usuarios, identificación |
+| `user/` | 6 | [user-services.md](services/user-services.md) | Alta de comprador, estado y rol de usuarios, identificación |
 | `seller/` | 2 | [seller-services.md](services/seller-services.md) | Incorporación y consulta de vendedores |
 | `warehouse/` | 2 | [warehouse-services.md](services/warehouse-services.md) | Bodegas del marketplace y consulta de bodegas |
 | `catalog/` | 7 | [catalog-services.md](services/catalog-services.md) | Productos, variantes y ciclo del catálogo |
-| `inventory/` | 8 | [inventory-services.md](services/inventory-services.md) | Existencias distribuidas y sus movimientos |
+| `inventory/` | 9 | [inventory-services.md](services/inventory-services.md) | Existencias distribuidas y sus movimientos |
 | `cart/` | 5 | [cart-services.md](services/cart-services.md) | Selección provisional del comprador |
 | `order/` | 4 | [order-services.md](services/order-services.md) | Ciclo de vida del pedido |
 | `invoice/` | 2 | [invoice-services.md](services/invoice-services.md) | Emisión y consulta de facturas |
-| `shipment/` | 3 | [shipment-services.md](services/shipment-services.md) | Empaque, despacho y entrega |
+| `shipment/` | 4 | [shipment-services.md](services/shipment-services.md) | Empaque, despacho y entrega |
 | `returns/` | 2 | [return-services.md](services/return-services.md) | Devoluciones de posventa |
 | `refund/` | 2 | [refund-services.md](services/refund-services.md) | Reembolsos derivados de devoluciones |
 | `reporting/` | 2 | [reporting-services.md](services/reporting-services.md) | Consultas consolidadas de solo lectura (OBJ-12) |
@@ -122,6 +122,9 @@ Los 49 servicios se agrupan en 14 áreas, una subcarpeta por área:
 | 47 | `ConsultSalesReportService` | reporting | `consultCompletedOrders` / `consultInvoicedTotal` |
 | 48 | `ConsultInventoryReportService` | reporting | `consultStockByWarehouse` / `consultDamagedStock` |
 | 49 | `RegisterOperationLogService` | audit | `register(actor, operationType, affectedEntity, details)` |
+| 50 | `OpenStockRecordService` | inventory | `open(seller, product, warehouse, inventoryItemId)` |
+| 51 | `RegisterStaffUserService` | user | `register(actor, userId, fullName, email, document, role)` |
+| 52 | `ConsultShipmentService` | shipment | `consultByOrder` / `consultOwn` |
 
 ---
 
@@ -136,6 +139,8 @@ Los servicios señalan las violaciones de regla con las excepciones de
 | `UnauthorizedOperationException` | RG-03, RD-ROL-03 |
 | `UserNotActiveException` | RG-01, RD-ROL-01 |
 | `InvalidRoleChangeException` | RD-ROL-08 |
+| `StaffRoleNotAllowedException` | RD-ROL-09 |
+| `DuplicateUserIdentifierException` | RD-ID-02 |
 | `DuplicateEmailException` | RD-ID-03 |
 | `DuplicateIdentityDocumentException` | RD-ID-04 |
 | `BuyerNotAllowedToPurchaseException` | Estado comercial del comprador |
@@ -144,6 +149,7 @@ Los servicios señalan las violaciones de regla con las excepciones de
 | `InsufficientStockException` | RD-INV-02, RD-INV-03 |
 | `DamagedStockException` | RD-INV-03 |
 | `DuplicateInventoryItemException` | RD-ID-05, RD-INV-01 |
+| `StockRecordNotAllowedException` | RD-INV-05, RD-CAT-04 |
 | `OrderNotModifiableException` | RD-PED-02 |
 | `InvalidOrderTransitionException` | RD-PED-01 |
 | `EmptyCartException` | Un pedido tiene al menos una línea |

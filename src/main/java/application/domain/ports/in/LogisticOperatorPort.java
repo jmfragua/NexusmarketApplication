@@ -86,6 +86,11 @@ public interface LogisticOperatorPort {
     List<Order> consultOrdersByStatus(User<?> operator, OrderStatus status);
 
     /**
+     * @return the shipments of the order; empty while it has not been packed.
+     */
+    List<Shipment> consultShipmentsOfOrder(User<?> operator, Order order);
+
+    /**
      * Resolves an order by its identifier, which the logistic operations act upon.
      */
     Order consultOrder(User<?> operator, OrderId orderId);

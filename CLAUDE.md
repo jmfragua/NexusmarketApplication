@@ -9,7 +9,7 @@ hexagonal architecture (Ports & Adapters) with a DDD core.
 
 All layers are implemented: domain (entities, value objects, exceptions, ports, services),
 persistence adapters (JPA for 12 aggregates, MongoDB for the audit log), REST adapters, use cases,
-JWT security and the bootstrap seeder — 283 production files, covered by 143 tests.
+JWT security and the bootstrap seeder — 292 production files, covered by 189 tests.
 
 Run it with `docker compose up` (MySQL 8.4 + MongoDB 7 + the app), or point the app at those
 containers locally. Bootstrapping needs `SEED_ADMIN_PASSWORD`: without it no administrator is
@@ -45,7 +45,7 @@ changing behavior. Documentation is written in Spanish; all code and its Javadoc
   and numbered business rules (`RG-*` from the functional spec, `RD-*` design rules derived from it).
 - [SDD/domain/Domain Value Objects.md](SDD/domain/Domain%20Value%20Objects.md) — value objects and
   enumerations, with their own `RD-VO-*` rule numbering.
-- [SDD/domain/Domain Services.md](SDD/domain/Domain%20Services.md) — the 49 services, their design
+- [SDD/domain/Domain Services.md](SDD/domain/Domain%20Services.md) — the 52 services, their design
   rules (`RD-SRV-*`) and the exception catalogue; one detail file per area under
   `SDD/domain/services/` (e.g. `inventory-services.md`), documenting each service's inputs,
   validations, processing and exceptions.
@@ -70,14 +70,14 @@ doesn't belong in the model.
 ```
 application.domain.models          23 files: the abstract DomainEntity<ID> base + 22 entities
 application.domain.valuesObjects   37 value objects and enumerations (ValueObject hierarchy)
-application.domain.services        49 services, one per use case, in 14 area subpackages:
+application.domain.services        52 services, one per use case, in 14 area subpackages:
                                     authorization, user, seller, warehouse, catalog, inventory,
                                     cart, order, invoice, shipment, returns, refund, reporting,
                                     audit
 application.domain.ports.in        6 interfaces, one per user role (PublicAccess, Buyer, Seller,
                                     LogisticOperator, Administrator, Supervisor)
 application.domain.ports.out       13 interfaces, one per aggregate repository
-application.domain.exceptions      21 exceptions, one per business rule, all extending
+application.domain.exceptions      24 exceptions, one per business rule, all extending
                                     DomainException
 ```
 

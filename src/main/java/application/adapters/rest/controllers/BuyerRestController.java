@@ -11,6 +11,7 @@ import application.adapters.rest.dtos.responses.InvoiceResponse;
 import application.adapters.rest.dtos.responses.OrderResponse;
 import application.adapters.rest.dtos.responses.PageResponse;
 import application.adapters.rest.dtos.responses.ProductReturnResponse;
+import application.adapters.rest.dtos.responses.ShipmentResponse;
 import application.adapters.rest.mappers.AfterSalesRestMapper;
 import application.adapters.rest.mappers.CartRestMapper;
 import application.adapters.rest.mappers.OrderRestMapper;
@@ -71,6 +72,29 @@ public class BuyerRestController {
     }
 
     // Profile and delivery addresses
+
+    /**
+     * The buyer's own profile, including the addresses an order can be delivered to: the delivery
+     * address of an order must be one of them.
+     */
+    @GetMapping("/me")
+    public ResponseEntity<BuyerResponse> consultMyProfile(@AuthenticationPrincipal DomainUserPrincipal principal) {
+        Buyer buyer = ActorResolver.requireBuyer(principal.user());
+        return ResponseEntity.ok(UserRestMapper.toResponse(buyerPort.consultMyProfile(buyer)));
+    }
+
+    @GetMapping("/me/orders/{orderId}/shipments")
+    public ResponseEntity<PageResponse<ShipmentResponse>> consultMyShipments(
+            @AuthenticationPrincipal DomainUserPrincipal principal,
+            @PathVariable String orderId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        Buyer buyer = ActorResolver.requireBuyer(principal.user());
+        Order order = buyerPort.consultMyOrder(buyer, OrderId.of(orderId));
+        return ResponseEntity.ok(PageResponse.of(buyerPort.consultMyShipments(buyer, order).stream()
+                .map(AfterSalesRestMapper::toResponse)
+                .toList(), page, size));
+    }
 
     @PostMapping("/me/addresses")
     public ResponseEntity<BuyerResponse> addAdditionalAddress(@AuthenticationPrincipal DomainUserPrincipal principal,

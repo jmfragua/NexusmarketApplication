@@ -4,10 +4,12 @@ import application.domain.ports.out.InventoryItemRepositoryPort;
 import application.domain.ports.out.InventoryMovementRepositoryPort;
 import application.domain.services.audit.RegisterOperationLogService;
 import application.domain.services.authorization.ValidateRoleAuthorizationService;
+import application.domain.services.authorization.ValidateSellerOwnershipService;
 import application.domain.services.inventory.AdjustStockService;
 import application.domain.services.inventory.ConsultInventoryService;
 import application.domain.services.inventory.IssueForSaleService;
 import application.domain.services.inventory.MarkDamagedService;
+import application.domain.services.inventory.OpenStockRecordService;
 import application.domain.services.inventory.ReceiveStockService;
 import application.domain.services.inventory.ReleaseReservationService;
 import application.domain.services.inventory.ReserveStockService;
@@ -20,6 +22,15 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class InventoryServicesConfig {
+
+    @Bean
+    public OpenStockRecordService openStockRecordService(
+            InventoryItemRepositoryPort inventoryItemRepositoryPort,
+            ValidateRoleAuthorizationService validateRoleAuthorizationService,
+            ValidateSellerOwnershipService validateSellerOwnershipService) {
+        return new OpenStockRecordService(inventoryItemRepositoryPort, validateRoleAuthorizationService,
+                validateSellerOwnershipService);
+    }
 
     @Bean
     public ReceiveStockService receiveStockService(

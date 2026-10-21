@@ -53,6 +53,11 @@ public interface SellerPort {
 
     // Inventory of the own products
 
+    /**
+     * Opens the stock record of an own physical product in an own warehouse (RD-INV-01, RD-ID-05).
+     */
+    InventoryItem openStockRecord(Seller seller, Product product, Warehouse warehouse, InventoryItemId inventoryItemId);
+
     InventoryMovement receiveStock(Seller seller, InventoryItem inventoryItem, Quantity quantity,
                                    InventoryMovementId movementId);
 

@@ -159,6 +159,23 @@ public class LogisticOperatorRestController {
                 principal.user(), ShipmentId.of(request.shipmentId()), OrderId.of(request.orderId()))));
     }
 
+    /**
+     * The shipments of an order: empty until it is packed, and afterwards the shipment whose
+     * identifier the dispatch and the delivery act upon.
+     */
+    @GetMapping("/orders/{orderId}/shipments")
+    public ResponseEntity<PageResponse<ShipmentResponse>> consultShipmentsOfOrder(
+            @AuthenticationPrincipal DomainUserPrincipal principal,
+            @PathVariable String orderId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        Order order = logisticOperatorPort.consultOrder(principal.user(), OrderId.of(orderId));
+        return ResponseEntity.ok(PageResponse.of(logisticOperatorPort.consultShipmentsOfOrder(principal.user(), order)
+                .stream()
+                .map(AfterSalesRestMapper::toResponse)
+                .toList(), page, size));
+    }
+
     @GetMapping("/orders")
     public ResponseEntity<PageResponse<OrderResponse>> consultOrdersByStatus(
             @AuthenticationPrincipal DomainUserPrincipal principal,

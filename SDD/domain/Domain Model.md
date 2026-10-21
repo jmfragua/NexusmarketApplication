@@ -309,6 +309,10 @@ vendedor que solo el administrador puede incorporar— y construirlos por esta v
   discriminador almacenado, no la columna `role`, decide qué entidad se reconstruye al recargar—, así
   que aceptar el cambio lo daría por bueno y lo perdería en el siguiente `findById`. Permitirlo
   además violaría RD-ROL-05, porque permitiría fabricar un vendedor sin incorporación ni bodega.
+- **RD-ROL-09.** El administrador incorpora al personal de operación —operadores logísticos y
+  supervisores— como `StaffUser` activos (OBJ-01). Es la única vía de alta de esos dos roles. Los
+  administradores no se incorporan así: el primero lo crea el arranque y los siguientes surgen de
+  reasignar personal existente (RD-ROL-08).
 
 ---
 
@@ -1019,7 +1023,9 @@ El ciclo es **secuencial**: no se admiten saltos entre estados ni retrocesos. Un
 
 - **RD-ID-01.** Toda entidad de dominio hereda de `DomainEntity` y se compara por identidad, nunca
   por el valor de sus atributos.
-- **RD-ID-02.** El identificador de usuario es único.
+- **RD-ID-02.** El identificador de usuario es único. Como lo aporta quien invoca (RD-POUT-04), todo
+  alta de usuario comprueba que esté libre antes de persistir: guardar con un identificador en uso
+  reemplazaría al usuario existente.
 - **RD-ID-03.** El correo electrónico del usuario es único en toda la plataforma.
 - **RD-ID-04.** El documento de identidad del usuario es único en toda la plataforma.
 - **RD-ID-05.** El par (`productId`, `warehouseId`) identifica de forma única un `InventoryItem`:

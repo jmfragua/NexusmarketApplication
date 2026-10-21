@@ -2,6 +2,7 @@ package application.domain.services.user;
 
 import application.domain.exceptions.DuplicateEmailException;
 import application.domain.exceptions.DuplicateIdentityDocumentException;
+import application.domain.exceptions.DuplicateUserIdentifierException;
 import application.domain.models.Buyer;
 import application.domain.models.Cart;
 import application.domain.ports.out.CartRepositoryPort;
@@ -37,12 +38,16 @@ public class RegisterBuyerService {
      * @param buyer  buyer already built and validated by the domain model.
      * @param cartId identifier assigned to the active cart of this buyer.
      * @return the registered buyer.
+     * @throws DuplicateUserIdentifierException   when another user already holds the identifier (RD-ID-02).
      * @throws DuplicateEmailException            when the email address is already registered.
      * @throws DuplicateIdentityDocumentException when the identity document is already registered.
      */
     public Buyer register(Buyer buyer, CartId cartId) {
         Objects.requireNonNull(buyer, "buyer is mandatory");
         Objects.requireNonNull(cartId, "the identifier of the cart is mandatory");
+        if (userRepositoryPort.findByIdentifier(buyer.getIdentifier()).isPresent()) {
+            throw new DuplicateUserIdentifierException(buyer.getIdentifier());
+        }
         if (userRepositoryPort.existsByEmail(buyer.getEmail())) {
             throw new DuplicateEmailException(buyer.getEmail());
         }

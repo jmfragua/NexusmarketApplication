@@ -83,13 +83,16 @@ objetos de valor y delega la construcción en el modelo, que es donde vive la re
 |---|---|---|---|
 | 1 | Actor activo | Servicio (RG-01) | `UserNotActiveException` |
 | 2 | Rol `ADMINISTRATOR` | Servicio (RD-ROL-06) | `UnauthorizedOperationException` |
-| 3 | Correo único en la plataforma | Servicio (RD-ID-03) | `DuplicateEmailException` |
-| 4 | Documento único en la plataforma | Servicio (RD-ID-04) | `DuplicateIdentityDocumentException` |
-| 5 | El actor es administrador | `Seller.register` (RD-ROL-05) | `IllegalStateException` |
-| 6 | El administrador está activo | `Seller.register` | `IllegalStateException` |
-| 7 | La bodega pertenece a este vendedor | `Seller.register` | `IllegalArgumentException` |
+| 3 | Identificador libre | Servicio (RD-ID-02) | `DuplicateUserIdentifierException` |
+| 4 | Correo único en la plataforma | Servicio (RD-ID-03) | `DuplicateEmailException` |
+| 5 | Documento único en la plataforma | Servicio (RD-ID-04) | `DuplicateIdentityDocumentException` |
+| 6 | El actor es administrador | `Seller.register` (RD-ROL-05) | `IllegalStateException` |
+| 7 | El administrador está activo | `Seller.register` | `IllegalStateException` |
+| 8 | La bodega pertenece a este vendedor | `Seller.register` | `IllegalArgumentException` |
 
-Las validaciones 5-7 son la defensa del modelo, deliberadamente redundante con 1-2.
+Las validaciones 6-8 son la defensa del modelo, deliberadamente redundante con 1-2. La 3 existe
+porque el identificador lo elige quien invoca: sin ella, incorporar un vendedor con el identificador
+de otro usuario lo reemplazaría.
 
 ## Procesamiento
 
@@ -108,6 +111,7 @@ El vendedor incorporado, con rol fijo `SELLER` y su primera bodega ya registrada
 | Excepción | Causa |
 |---|---|
 | `UnauthorizedOperationException` | El actor no es administrador |
+| `DuplicateUserIdentifierException` | Otro usuario ya tiene ese identificador |
 | `DuplicateEmailException` | El correo ya está registrado |
 | `DuplicateIdentityDocumentException` | El documento ya está registrado |
 | `IllegalArgumentException` | La primera bodega pertenece a otro vendedor |

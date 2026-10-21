@@ -2,8 +2,10 @@ package application.infrastructure.config;
 
 import application.domain.ports.out.OrderRepositoryPort;
 import application.domain.ports.out.ShipmentRepositoryPort;
+import application.domain.services.authorization.ValidateBuyerOwnershipService;
 import application.domain.services.authorization.ValidateRoleAuthorizationService;
 import application.domain.services.shipment.ConfirmShipmentDeliveryService;
+import application.domain.services.shipment.ConsultShipmentService;
 import application.domain.services.shipment.DispatchShipmentService;
 import application.domain.services.shipment.PackShipmentService;
 import org.springframework.context.annotation.Bean;
@@ -14,6 +16,15 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class ShipmentServicesConfig {
+
+    @Bean
+    public ConsultShipmentService consultShipmentService(
+            ShipmentRepositoryPort shipmentRepositoryPort,
+            ValidateRoleAuthorizationService validateRoleAuthorizationService,
+            ValidateBuyerOwnershipService validateBuyerOwnershipService) {
+        return new ConsultShipmentService(shipmentRepositoryPort, validateRoleAuthorizationService,
+                validateBuyerOwnershipService);
+    }
 
     @Bean
     public PackShipmentService packShipmentService(

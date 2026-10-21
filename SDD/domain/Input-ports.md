@@ -106,6 +106,9 @@ public interface BuyerPort {
     ProductReturn requestReturn(Buyer buyer, Order order, OrderLine orderLine, Quantity quantity,
                                 ProductReturnId returnId);
     List<ProductReturn> consultMyReturns(Buyer buyer, Order order);
+
+    Buyer consultMyProfile(Buyer buyer);
+    List<Shipment> consultMyShipments(Buyer buyer, Order order);
 }
 ```
 
@@ -118,6 +121,8 @@ public interface BuyerPort {
 | `consultMyOrder(s)` | RD-PED-05, RD-ROL-04 | `ConsultOrderService` |
 | `consultMyInvoice(s)` | RD-FAC-01, RD-ROL-04 | `ConsultInvoiceService` |
 | `requestReturn` | RD-POS-01 | `RequestReturnService` |
+| `consultMyProfile` | RD-ROL-04 | `ValidateRoleAuthorizationService` |
+| `consultMyShipments` | RD-PED-05, RD-ROL-04 | `ConsultShipmentService` |
 
 ---
 
@@ -137,6 +142,8 @@ public interface SellerPort {
     List<SellerWarehouse> consultMyWarehouses(Seller seller);
     Warehouse consultMyWarehouse(Seller seller, WarehouseId warehouseId);
 
+    InventoryItem openStockRecord(Seller seller, Product product, Warehouse warehouse,
+                                  InventoryItemId inventoryItemId);
     InventoryMovement receiveStock(Seller seller, InventoryItem inventoryItem, Quantity quantity,
                                    InventoryMovementId movementId);
     InventoryMovement adjustStock(Seller seller, InventoryItem inventoryItem, Quantity newAvailableQuantity,
@@ -154,6 +161,7 @@ public interface SellerPort {
 | `discontinueProduct` | RD-CAT-04, RD-VO-13 | `DiscontinueProductService` |
 | `addProductVariant` / `removeProductVariant` | RD-CAT-05 | `AddProductVariantService`, `RemoveProductVariantService` |
 | `consultMyWarehouse(s)` | RG-03, RD-ROL-03 | `ConsultWarehouseService` |
+| `openStockRecord` | RD-INV-01, RD-INV-05, RD-ID-05, RG-03 | `OpenStockRecordService` |
 | `receiveStock` / `adjustStock` | RD-INV-02, RD-INV-04 | `ReceiveStockService`, `AdjustStockService` |
 | `markStockAsDamaged` | RD-INV-03, RD-VO-12 | `MarkDamagedService` |
 | `consultMyProduct` | RD-CAT-01, RG-03 | `ValidateSellerOwnershipService` |
@@ -188,6 +196,7 @@ public interface LogisticOperatorPort {
     Shipment dispatchShipment(User<?> operator, Shipment shipment, Order order);
     Shipment confirmShipmentDelivery(User<?> operator, Shipment shipment, Order order);
     List<Order> consultOrdersByStatus(User<?> operator, OrderStatus status);
+    List<Shipment> consultShipmentsOfOrder(User<?> operator, Order order);
 
     // Resolución y entrada por identificador (RD-PIN-06)
     Order consultOrder(User<?> operator, OrderId orderId);
@@ -215,6 +224,7 @@ controlador, el adaptador REST tenía que conocer cinco puertos de salida.
 | `packShipment` | RD-LOG-01, RD-PED-03 | `PackShipmentService` |
 | `dispatchShipment` | RD-PED-01, RD-LOG-02 | `DispatchShipmentService` |
 | `confirmShipmentDelivery` | RD-PED-01, RD-PED-02 | `ConfirmShipmentDeliveryService` |
+| `consultShipmentsOfOrder` | RD-LOG-01, RD-ROL-06 | `ConsultShipmentService` |
 | `consultOrder` / `consultStockRecord` | RD-ROL-06 | `ValidateRoleAuthorizationService` |
 
 ---
@@ -227,6 +237,9 @@ public interface AdministratorPort {
                           IdentityDocument identityDocument, UserStatus status, SellerWarehouse firstWarehouse);
     Seller consultSeller(User<?> administrator, SellerId sellerId);
     List<Seller> consultSellers(User<?> administrator);
+
+    StaffUser registerStaffUser(User<?> administrator, UserId userId, FullName fullName, EmailAddress email,
+                                IdentityDocument identityDocument, UserRole role);
 
     User<?> consultUser(User<?> administrator, Identifier userId);
     User<?> blockUser(User<?> administrator, User<?> target);
@@ -242,12 +255,17 @@ public interface AdministratorPort {
                        RefundId refundId);
     List<Refund> consultRefunds(User<?> administrator);
     ProductReturn consultReturn(User<?> administrator, ProductReturnId returnId);
+
+    List<User<?>> consultUsers(User<?> administrator);
+    List<Warehouse> consultWarehouses(User<?> administrator);
+    Invoice consultInvoiceOfOrder(User<?> administrator, OrderId orderId);
 }
 ```
 
 | Método | Reglas aplicadas | Servicios de dominio |
 |---|---|---|
 | `registerSeller` | RD-ROL-05, RD-ROL-06, RD-ID-03, RD-ID-04 | `RegisterSellerService` |
+| `registerStaffUser` | RD-ROL-07, RD-ROL-09, RD-ID-02, RD-ID-03, RD-ID-04 | `RegisterStaffUserService` |
 | `blockUser` / `activateUser` | RG-01, RD-ROL-01 | `BlockUserService`, `ActivateUserService` |
 | `changeUserRole` | RG-02, RD-ROL-02 | `ChangeUserRoleService` |
 | `registerMarketplaceWarehouse` | RD-ROL-06 | `RegisterMarketplaceWarehouseService` |
@@ -255,6 +273,9 @@ public interface AdministratorPort {
 | `consultUser` | RG-01, RD-ROL-06 | `ValidateRoleAuthorizationService` |
 | `issueInvoice` | RD-FAC-01 | `IssueInvoiceService` |
 | `consultInvoice` | RD-FAC-01, RD-ROL-06 | `ValidateRoleAuthorizationService` |
+| `consultUsers` | OBJ-01, RD-ROL-06 | `ValidateRoleAuthorizationService` |
+| `consultWarehouses` | OBJ-04, RD-ROL-06 | `ConsultWarehouseService` |
+| `consultInvoiceOfOrder` | RD-FAC-01, RD-POS-02 | `ConsultInvoiceService` |
 
 La facturación corresponde al vendedor y al administrador (RD-FAC-01). Figura aquí para que el
 administrador no tenga que salirse de su puerto; el servicio detrás sigue validando el rol, que es

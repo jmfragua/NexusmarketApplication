@@ -1,6 +1,7 @@
 package application.adapters.rest.controllers;
 
 import application.adapters.rest.dtos.requests.AddProductVariantRequest;
+import application.adapters.rest.dtos.requests.OpenStockRecordRequest;
 import application.adapters.rest.dtos.requests.RegisterProductRequest;
 import application.adapters.rest.dtos.requests.StockMovementRequest;
 import application.adapters.rest.dtos.responses.InventoryItemResponse;
@@ -75,6 +76,17 @@ public class SellerRestController {
         return ResponseEntity.ok(PageResponse.of(sellerPort.consultMyCatalog(seller).stream()
                 .map(ProductRestMapper::toResponse)
                 .toList(), page, size));
+    }
+
+    /**
+     * One product of the seller's own catalogue, in any status. A product of another seller answers
+     * 403 and an unknown one 404 (RD-CAT-01).
+     */
+    @GetMapping("/products/{productId}")
+    public ResponseEntity<ProductResponse> consultMyProduct(@AuthenticationPrincipal DomainUserPrincipal principal,
+                                                            @PathVariable String productId) {
+        Seller seller = ActorResolver.requireSeller(principal.user());
+        return ResponseEntity.ok(ProductRestMapper.toResponse(productOf(seller, productId)));
     }
 
     @PostMapping("/products/{productId}/publication")
@@ -162,6 +174,24 @@ public class SellerRestController {
                 sellerPort.consultStockOfMyProduct(seller, ProductId.of(productId)).stream()
                         .map(InventoryRestMapper::toResponse)
                         .toList(), page, size));
+    }
+
+    /**
+     * Opens the stock record of an own physical product in an own warehouse. Product and warehouse
+     * are resolved through the port, which validates ownership while loading (RD-PIN-06): 404 when
+     * either does not exist, 403 when either belongs to someone else.
+     */
+    @PostMapping("/stock/items")
+    public ResponseEntity<InventoryItemResponse> openStockRecord(
+            @AuthenticationPrincipal DomainUserPrincipal principal,
+            @Valid @RequestBody OpenStockRecordRequest request) {
+        Seller seller = ActorResolver.requireSeller(principal.user());
+        InventoryItem inventoryItem = sellerPort.openStockRecord(
+                seller,
+                productOf(seller, request.productId()),
+                sellerPort.consultMyWarehouse(seller, WarehouseId.of(request.warehouseId())),
+                InventoryItemId.of(request.inventoryItemId()));
+        return ResponseEntity.status(HttpStatus.CREATED).body(InventoryRestMapper.toResponse(inventoryItem));
     }
 
     @PostMapping("/stock/receipts")

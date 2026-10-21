@@ -50,13 +50,13 @@ class NexusmarketApplicationTests {
     }
 
     @Test
-    @DisplayName("every one of the 49 domain services is exposed as a bean")
+    @DisplayName("every one of the 52 domain services is exposed as a bean")
     void everyDomainServiceIsABean() {
         long serviceBeans = applicationContext.getBeansOfType(Object.class).values().stream()
                 .map(bean -> bean.getClass().getName())
                 .filter(name -> name.startsWith("application.domain.services."))
                 .count();
-        assertEquals(49, serviceBeans, "every domain service must be wired as a bean");
+        assertEquals(52, serviceBeans, "every domain service must be wired as a bean");
     }
 
     @Test
