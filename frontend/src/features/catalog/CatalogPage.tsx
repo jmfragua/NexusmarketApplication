@@ -67,13 +67,13 @@ export function CatalogPage() {
     <>
       <CatalogHero featured={data?.products ?? []} />
 
-      <section id="catalogo" className="mx-auto max-w-7xl scroll-mt-20 px-4 pt-10 sm:px-6" aria-labelledby="catalogo-title">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-          <div>
+      <section id="catalogo" className="mx-auto max-w-7xl scroll-mt-20 px-4 pt-5 sm:px-6" aria-labelledby="catalogo-title">
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
             <h2 id="catalogo-title" className="text-3xl font-extrabold sm:text-4xl">
               el catálogo
             </h2>
-            <p className="mt-1 text-ink-soft" aria-live="polite">
+            <p className="text-ink-soft" aria-live="polite">
               {isPending ? 'cargando productos…' : `${visible.length} ${visible.length === 1 ? 'producto' : 'productos'}`}
             </p>
           </div>
@@ -86,7 +86,7 @@ export function CatalogPage() {
               </svg>
               <Input
                 type="search"
-                placeholder="buscar por nombre, marca o talla"
+                placeholder="Buscar por nombre, marca o talla"
                 value={query}
                 onChange={(e) => update('q', e.target.value)}
                 className="rounded-full pl-11"
@@ -129,9 +129,10 @@ export function CatalogPage() {
           <ul className="grid grid-cols-1 gap-5 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" aria-hidden="true">
             {Array.from({ length: 8 }, (_, i) => (
               <li key={i} className="rounded-[var(--radius-card)] bg-card p-2.5 ring-1 ring-line">
-                <Skeleton className="aspect-[4/3.4]" />
-                <Skeleton className="mt-4 h-4 w-1/3" />
-                <Skeleton className="mt-2 h-5 w-3/4" />
+                <Skeleton className="aspect-[4/3]" />
+                <Skeleton className="mt-5 h-5 w-3/4" />
+                <Skeleton className="mt-2.5 h-4 w-1/3" />
+                <Skeleton className="mt-4 h-4 w-1/2" />
               </li>
             ))}
           </ul>
