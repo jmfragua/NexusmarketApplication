@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { COMPOSITIONS, COVER_HEIGHT, COVER_WIDTH, PALETTES, coverChoice, coverDataUri, coverSvg, stickerTone } from './cover'
+import { COMPOSITIONS, COVER_HEIGHT, COVER_WIDTH, PALETTES, coverChoice, coverDataUri, coverSvg } from './cover'
 
 const ids = Array.from({ length: 300 }, (_, i) => `product-${i}`)
 
@@ -44,19 +44,5 @@ describe('generated covers', () => {
 
   it('encodes as a data URI an <img> can show', () => {
     expect(coverDataUri('abc')).toMatch(/^data:image\/svg\+xml;charset=utf-8,%3Csvg/)
-  })
-})
-
-describe('sticker tone', () => {
-  it('never blends into the poster it sits on', () => {
-    const own: Record<string, string> = { coral: 'coral', durazno: 'coral', cobalto: 'cobalt', lima: 'lime', 'limón claro': 'lime' }
-    for (const id of ids) {
-      const palette = PALETTES[coverChoice(id).palette]?.name ?? ''
-      expect(stickerTone(id)).not.toBe(own[palette])
-    }
-  })
-
-  it('is stable for a product', () => {
-    expect(stickerTone('abc')).toBe(stickerTone('abc'))
   })
 })

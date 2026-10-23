@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom'
 import type { ProductResponse } from '@/api/types'
 import { Badge } from '@/components/ui/Badge'
+import { cn } from '@/lib/cn'
 import { PriceSticker } from './PriceSticker'
+import { productTone, typeChipRing } from './productTone'
 import { ProductCover } from './ProductCover'
 import { readProduct } from './variant'
 
@@ -16,6 +18,7 @@ function TypeIcon({ digital }: { digital: boolean }) {
 export function ProductCard({ product, index = 0 }: { product: ProductResponse; index?: number }) {
   const view = readProduct(product)
   const digital = product.productType === 'DIGITAL'
+  const tone = productTone(product.productType)
   const options = view.variants.length
   // The brand and, when there are several variants, how many: secondary data on one line, so the
   // type and shipping row at the bottom lines up across the cards of a row.
@@ -39,6 +42,7 @@ export function ProductCard({ product, index = 0 }: { product: ProductResponse; 
             amount={view.priceFrom}
             currency={view.currency}
             from={view.hasPriceRange}
+            type={product.productType}
             seed={product.id}
             className="absolute right-2.5 -bottom-3"
           />
@@ -47,7 +51,7 @@ export function ProductCard({ product, index = 0 }: { product: ProductResponse; 
           <h3 className="text-lg leading-snug font-bold group-hover:text-cobalt">{view.title}</h3>
           {secondary && <p className="mt-0.5 text-sm text-ink-soft">{secondary}</p>}
           <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 pt-3.5">
-            <Badge tone={digital ? 'lime' : 'cobalt'} className="gap-1">
+            <Badge tone={tone} className={cn('gap-1', typeChipRing[tone])}>
               <TypeIcon digital={digital} />
               {digital ? 'Digital' : 'Físico'}
             </Badge>

@@ -11,6 +11,7 @@ import { useAddToCart } from '@/features/cart/queries'
 import { cn } from '@/lib/cn'
 import { formatMoney } from '@/lib/money'
 import { PriceSticker } from './PriceSticker'
+import { productTone, typeChipRing } from './productTone'
 import { ProductCover } from './ProductCover'
 import { useProduct } from './queries'
 import { isSampleId } from './samples'
@@ -96,12 +97,12 @@ export function ProductPage() {
           <div className="aspect-square overflow-hidden rounded-[1.6rem] bg-card ring-1 ring-line">
             <ProductCover productId={product.id} title={view.title} image={selected?.image ?? view.image} />
           </div>
-          <PriceSticker amount={price} currency={selected?.currency ?? view.currency} seed={product.id} size="lg" className="absolute right-5 -bottom-5" />
+          <PriceSticker amount={price} currency={selected?.currency ?? view.currency} type={product.productType} seed={product.id} size="lg" className="absolute right-5 -bottom-5" />
         </div>
 
         <div className="flex flex-col pt-3 md:pt-0">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge tone={product.productType === 'DIGITAL' ? 'lime' : 'cobalt'}>
+            <Badge tone={productTone(product.productType)} className={typeChipRing[productTone(product.productType)]}>
               {product.productType === 'DIGITAL' ? 'Digital · entrega inmediata al pagar' : 'Físico · se envía desde bodega'}
             </Badge>
             {view.brand && <span className="text-sm font-semibold text-ink-faint">{view.brand}</span>}

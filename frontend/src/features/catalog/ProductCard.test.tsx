@@ -85,9 +85,16 @@ describe('product card', () => {
     expect(link).not.toHaveTextContent('sin precio')
   })
 
-  it('tones a priced sticker, never as neutral', () => {
+  it('paints the sticker and the type chip coral for a physical product', () => {
     const link = card(product())
-    expect(['coral', 'lime', 'cobalt']).toContain((link.querySelector('.sticker') as HTMLElement).getAttribute('data-tone'))
+    expect(link.querySelector('.sticker')).toHaveAttribute('data-tone', 'coral')
+    expect(within(link).getByText('Físico').className).toContain('bg-coral-wash')
+  })
+
+  it('paints the sticker and the type chip lime for a digital product', () => {
+    const link = card(product({ productType: 'DIGITAL' }))
+    expect(link.querySelector('.sticker')).toHaveAttribute('data-tone', 'lime')
+    expect(within(link).getByText('Digital').className).toContain('bg-lime-wash')
   })
 
   it('describes a real photo with the product name and treats the generated poster as decoration', () => {

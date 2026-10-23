@@ -82,7 +82,7 @@ export function SellerProductsPage() {
                   </div>
                 </div>
                 <div className="col-span-2 flex flex-wrap items-center justify-between gap-3 sm:col-span-1 sm:justify-end">
-                  {view.priceFrom !== null && <PriceSticker amount={view.priceFrom} currency={view.currency} from={view.hasPriceRange} seed={product.id} className="text-sm" />}
+                  {view.priceFrom !== null && <PriceSticker amount={view.priceFrom} currency={view.currency} from={view.hasPriceRange} type={product.productType} seed={product.id} className="text-sm" />}
                   <ProductLifecycle product={product} />
                 </div>
               </li>

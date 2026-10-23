@@ -317,26 +317,6 @@ export function coverChoice(productId: string): { composition: number; palette: 
   return { composition: h % COMPOSITIONS.length, palette: (h >>> 9) % PALETTES.length }
 }
 
-export type StickerTone = 'coral' | 'lime' | 'cobalt'
-
-// The sticker must not blend into the poster below it: each palette lists the tones that stand out.
-const STICKER_TONES: Record<string, readonly [StickerTone, StickerTone]> = {
-  cobalto: ['lime', 'coral'],
-  noche: ['lime', 'coral'],
-  lima: ['coral', 'cobalt'],
-  coral: ['cobalt', 'lime'],
-  niebla: ['coral', 'cobalt'],
-  durazno: ['cobalt', 'lime'],
-  'limón claro': ['coral', 'cobalt'],
-  cielo: ['coral', 'lime'],
-}
-
-export function stickerTone(productId: string): StickerTone {
-  const palette = PALETTES[coverChoice(productId).palette] as Palette
-  const tones = STICKER_TONES[palette.name] ?? (['coral', 'lime'] as const)
-  return tones[(mixedHash(productId) >>> 17) % 2] as StickerTone
-}
-
 export function coverSvg(productId: string): string {
   const seed = mixedHash(productId)
   const { composition, palette } = coverChoice(productId)
