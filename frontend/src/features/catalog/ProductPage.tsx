@@ -96,7 +96,7 @@ export function ProductPage() {
           <div className="aspect-square overflow-hidden rounded-[1.6rem] bg-card ring-1 ring-line">
             <ProductCover productId={product.id} title={view.title} image={selected?.image ?? view.image} />
           </div>
-          <PriceSticker amount={price} currency={selected?.currency ?? view.currency} seed={product.id} size="lg" className="absolute -bottom-5 left-5" />
+          <PriceSticker amount={price} currency={selected?.currency ?? view.currency} seed={product.id} size="lg" className="absolute right-5 -bottom-5" />
         </div>
 
         <div className="flex flex-col pt-3 md:pt-0">
