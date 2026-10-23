@@ -1,6 +1,7 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { LoadingRows } from '@/components/ui/States'
+import { AboutPage } from '@/features/about/AboutPage'
 import { AccountPage } from '@/features/account/AccountPage'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { RegisterPage } from '@/features/auth/RegisterPage'
@@ -43,6 +44,7 @@ export function App() {
       <Route element={<StoreLayout />}>
         <Route index element={<CatalogPage />} />
         <Route path="productos/:productId" element={<ProductPage />} />
+        <Route path="acerca" element={<AboutPage />} />
         <Route path="ingresar" element={<GuestOnly><LoginPage /></GuestOnly>} />
         <Route path="registro" element={<GuestOnly><RegisterPage /></GuestOnly>} />
         <Route path="carrito" element={buyer(<CartPage />)} />

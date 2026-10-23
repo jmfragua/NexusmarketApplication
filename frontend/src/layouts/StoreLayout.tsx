@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { ButtonLink } from '@/components/ui/Button'
 import { buttonClass } from '@/components/ui/buttonStyles'
 import { Logo } from '@/components/Logo'
@@ -7,10 +7,19 @@ import { useCart } from '@/features/cart/queries'
 import { cn } from '@/lib/cn'
 import { roleLabel } from '@/lib/labels'
 
+// The page you are on is marked with a soft pill, never with a filled button: the only filled
+// button of the header is the main call to action.
 const navLink = ({ isActive }: { isActive: boolean }) =>
   cn(
     'rounded-full px-3.5 py-2 text-[0.95rem] font-semibold transition-colors',
-    isActive ? 'bg-ink text-white' : 'text-ink-soft hover:bg-ink/6 hover:text-ink',
+    isActive ? 'bg-cobalt-wash text-cobalt-deep' : 'text-ink-soft hover:bg-ink/6 hover:text-ink',
+  )
+
+// "Ingresar" is a plain text link: underlined on hover, on focus and on its own page.
+const textLink = ({ isActive }: { isActive: boolean }) =>
+  cn(
+    'rounded-full px-3 py-2 text-[0.95rem] font-semibold text-ink underline-offset-[6px] decoration-2 decoration-cobalt hover:underline focus-visible:underline',
+    isActive && 'underline',
   )
 
 function CartLink() {
@@ -20,7 +29,10 @@ function CartLink() {
     <NavLink
       to="/carrito"
       className={({ isActive }) =>
-        cn('relative inline-flex h-11 items-center gap-2 rounded-full px-4 font-semibold ring-1 ring-inset transition-colors', isActive ? 'bg-ink text-white ring-ink' : 'bg-card ring-line-strong hover:ring-ink')
+        cn(
+          'relative inline-flex h-11 items-center gap-2 rounded-full px-4 font-semibold ring-1 ring-inset transition-colors',
+          isActive ? 'bg-cobalt-wash text-cobalt-deep ring-cobalt' : 'bg-card ring-line-strong hover:ring-ink',
+        )
       }
       aria-label={count > 0 ? `Carrito, ${count} ${count === 1 ? 'producto' : 'productos'}` : 'Carrito vacío'}
     >
@@ -45,7 +57,7 @@ function AccountArea() {
   if (!session) {
     return (
       <div className="flex items-center gap-1 sm:gap-2">
-        <NavLink to="/ingresar" className={navLink}>
+        <NavLink to="/ingresar" className={textLink}>
           Ingresar
         </NavLink>
         <ButtonLink to="/registro" variant="primary" size="sm" className="h-10 max-sm:px-3.5">
@@ -77,6 +89,76 @@ function AccountArea() {
         Salir
       </button>
     </div>
+  )
+}
+
+const footerLink =
+  'rounded-sm text-white/90 underline-offset-4 decoration-lime decoration-2 hover:text-white hover:underline focus-visible:underline'
+
+function Footer() {
+  const { session } = useSession()
+  return (
+    <footer className="mt-20 bg-ink text-white/85">
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-10 sm:px-6 md:grid-cols-[1.5fr_1fr_1fr]">
+        <div>
+          <Logo inverted />
+          <p className="mt-3 max-w-sm text-sm">muchos vendedores, un solo carrito. Cada pedido se sigue desde el pago hasta la puerta de tu casa.</p>
+        </div>
+        <nav aria-label="Tienda">
+          <h2 className="font-display text-base font-bold text-white">Tienda</h2>
+          <ul className="mt-3 grid gap-2 text-sm">
+            <li>
+              <Link to="/" className={footerLink}>
+                Catálogo
+              </Link>
+            </li>
+            {session ? (
+              <li>
+                <Link to={session.role === 'BUYER' ? '/pedidos' : roleHome[session.role]} className={footerLink}>
+                  {session.role === 'BUYER' ? 'Mis pedidos' : 'Mi panel'}
+                </Link>
+              </li>
+            ) : (
+              <>
+                <li>
+                  <Link to="/ingresar" className={footerLink}>
+                    Ingresar
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/registro" className={footerLink}>
+                    Crear cuenta
+                  </Link>
+                </li>
+              </>
+            )}
+          </ul>
+        </nav>
+        <nav aria-label="Proyecto">
+          <h2 className="font-display text-base font-bold text-white">Proyecto</h2>
+          <ul className="mt-3 grid gap-2 text-sm">
+            <li>
+              <Link to="/acerca" className={footerLink}>
+                Acerca del proyecto
+              </Link>
+            </li>
+            <li>
+              <Link to="/acerca#datos" className={footerLink}>
+                Datos que guardamos
+              </Link>
+            </li>
+            <li>
+              <Link to="/acerca#pagos" className={footerLink}>
+                Pagos de prueba
+              </Link>
+            </li>
+          </ul>
+        </nav>
+      </div>
+      <div className="border-t border-white/10">
+        <p className="mx-auto max-w-7xl px-4 py-4 text-sm text-white/75 sm:px-6">Proyecto académico · Construcción de Software 2</p>
+      </div>
+    </footer>
   )
 }
 
@@ -131,17 +213,7 @@ export function StoreLayout() {
       <main id="contenido" className="flex-1">
         <Outlet />
       </main>
-      <footer className="mt-20 bg-ink text-white/80">
-        <div className="mx-auto grid max-w-7xl gap-6 px-4 py-10 sm:px-6 md:grid-cols-[1.4fr_1fr]">
-          <div>
-            <Logo inverted />
-            <p className="mt-3 max-w-md text-sm">
-              muchos vendedores, un solo carrito. Cada pedido se sigue desde el pago hasta la puerta de tu casa.
-            </p>
-          </div>
-          <p className="self-end text-sm md:text-right">proyecto académico · Construcción de Software 2</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }
