@@ -8,6 +8,8 @@
   --color-card: #ffffff;
   --color-line: #d6ddeb;
   --color-line-strong: #b4bfd6;
+  /* Border of a form control: 4.2:1 on white and 3.9:1 on the page background (WCAG 1.4.11 asks 3:1). */
+  --color-field: #6f7b9b;
 
   --color-cobalt: #1f3fd1;
   --color-cobalt-deep: #142a99;
@@ -91,7 +93,10 @@
   :focus-visible {
     outline: 3px solid var(--color-cobalt);
     outline-offset: 2px;
-    border-radius: 6px;
+  }
+  /* Cobalt is only 2.3:1 against the dark surfaces, so the ring turns lime there (15.8:1 on ink). */
+  :where(.bg-ink, .bg-cobalt) :focus-visible {
+    outline-color: var(--color-lime);
   }
   ::selection {
     background: var(--color-lime);
@@ -147,6 +152,16 @@
   .sticker[data-tone='cobalt']::after {
     border-color: color-mix(in srgb, #fff 55%, transparent);
   }
+  /* A product with no price yet: it must not look like an offer, so no accent fill and no shadow. */
+  .sticker[data-tone='neutral'] {
+    background: var(--color-card);
+    color: var(--color-ink-soft);
+    font-weight: 700;
+    box-shadow: 0 0 0 2px var(--color-ink-faint);
+  }
+  .sticker[data-tone='neutral']::after {
+    display: none;
+  }
 
   .skeleton {
     background: linear-gradient(90deg, #e3e8f2 0%, #f4f7fc 50%, #e3e8f2 100%);
@@ -169,4 +184,20 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* The sign-in and sign-up pages fill the space between the header and the footer and centre their
+   content in it; the footer drops its top margin there so no empty band is left under the form.
+   Unlayered on purpose: it has to beat the utility margin of the footer. */
+main:has(> .auth-shell) {
+  display: flex;
+  flex-direction: column;
+}
+main:has(> .auth-shell) > .auth-shell {
+  flex: 1;
+  display: grid;
+  align-content: center;
+}
+main:has(> .auth-shell) + footer {
+  margin-top: 0;
 }

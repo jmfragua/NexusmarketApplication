@@ -8,6 +8,8 @@ import { authApi } from '@/api/endpoints'
 import { describeError } from '@/api/errors'
 import { Button } from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Field'
+import { FormAlert } from '@/components/ui/FormAlert'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import { roleLabel } from '@/lib/labels'
 import { AuthShell } from './AuthShell'
 import { roleHome, useSession } from './session'
@@ -45,20 +47,16 @@ export function LoginPage() {
     <AuthShell
       title="ingresa a tu cuenta"
       description="compradores, vendedores y equipo de operación usan la misma puerta; cada quien llega a su espacio."
-      aside={<p className="font-display text-4xl leading-tight font-bold">tu pedido sigue donde lo dejaste.</p>}
+      aside={<p>tu pedido sigue donde lo dejaste.</p>}
     >
       <form noValidate onSubmit={form.handleSubmit((values) => login.mutate(values))} className="grid gap-5">
         <Field label="Correo" error={form.formState.errors.email?.message}>
           <Input type="email" autoComplete="email" {...form.register('email')} />
         </Field>
         <Field label="Contraseña" error={form.formState.errors.password?.message}>
-          <Input type="password" autoComplete="current-password" {...form.register('password')} />
+          <PasswordInput autoComplete="current-password" {...form.register('password')} />
         </Field>
-        {login.error && (
-          <p role="alert" className="rounded-xl bg-coral-wash px-4 py-3 text-sm font-medium text-coral-deep">
-            {describeError(login.error, 'login')}
-          </p>
-        )}
+        {login.error && <FormAlert>{describeError(login.error, 'login')}</FormAlert>}
         <Button type="submit" size="lg" loading={login.isPending}>
           Ingresar
         </Button>

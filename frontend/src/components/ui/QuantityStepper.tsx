@@ -17,7 +17,7 @@ export function QuantityStepper({ value, onChange, min = 1, max = 99, disabled, 
     size === 'sm' ? 'size-8' : 'size-10',
   )
   return (
-    <fieldset className={cn('inline-flex w-max shrink-0 items-center rounded-full bg-card p-0.5 ring-1 ring-inset ring-line-strong', box)} aria-label={label}>
+    <fieldset className={cn('inline-flex w-max shrink-0 items-center rounded-full bg-card p-0.5 ring-1 ring-inset ring-field', box)} aria-label={label}>
       <button type="button" className={btn} disabled={disabled || value <= min} onClick={() => onChange(value - 1)} aria-label="Restar uno">
         −
       </button>

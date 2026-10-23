@@ -11,8 +11,11 @@ import {
 } from 'react'
 import { cn } from '@/lib/cn'
 
+// The border meets 3:1 against its background (WCAG 1.4.11); focus adds a solid 2px ring on top of a
+// cobalt border; an invalid field gets a coral border, doubled inside, next to the icon and the text
+// of its message, so the state is never carried by colour alone.
 const control =
-  'block w-full rounded-xl border border-line-strong bg-card px-3.5 text-ink placeholder:text-ink-faint transition-colors hover:border-ink/50 focus-visible:border-cobalt focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-cobalt/25 aria-[invalid=true]:border-coral-deep aria-[invalid=true]:ring-coral/20 disabled:bg-paper disabled:text-ink-faint'
+  'block w-full rounded-xl border border-field bg-card px-3.5 text-ink placeholder:text-ink-faint transition-[border-color,box-shadow] hover:border-ink focus-visible:border-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt aria-[invalid=true]:border-coral-deep aria-[invalid=true]:shadow-[inset_0_0_0_1px_var(--color-coral-deep)] aria-[invalid=true]:focus-visible:ring-coral-deep disabled:bg-paper disabled:text-ink-faint'
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function Input(
   { className, ...rest },
@@ -51,15 +54,29 @@ interface FieldProps {
   hint?: ReactNode
   error?: string
   className?: string
+  /** Always shown under the control, even with an error: the rules of a password, a match check. */
+  extra?: ReactNode
   /** A single form control; the field wires `id`, `aria-invalid` and `aria-describedby` into it. */
   children: ReactElement<Record<string, unknown>>
 }
 
-export function Field({ label, hint, error, className, children }: FieldProps) {
+function ErrorIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="mt-0.5 size-4 shrink-0" fill="none" aria-hidden="true">
+      <circle cx="10" cy="10" r="8.25" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M10 5.8v5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+      <circle cx="10" cy="13.9" r="1.1" fill="currentColor" />
+    </svg>
+  )
+}
+
+export function Field({ label, hint, error, extra, className, children }: FieldProps) {
   const id = useId()
-  const hintId = hint ? `${id}-hint` : undefined
+  // The hint is not rendered while there is an error, so it must not be referenced either.
+  const hintId = hint && !error ? `${id}-hint` : undefined
   const errorId = error ? `${id}-error` : undefined
-  const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined
+  const extraId = extra ? `${id}-extra` : undefined
+  const describedBy = [hintId, errorId, extraId].filter(Boolean).join(' ') || undefined
   const wired = isValidElement(children)
     ? cloneElement(children, { id, 'aria-invalid': error ? true : undefined, 'aria-describedby': describedBy })
     : children
@@ -71,14 +88,20 @@ export function Field({ label, hint, error, className, children }: FieldProps) {
       </label>
       {wired}
       {hint && !error && (
-        <p id={hintId} className="text-sm text-ink-soft">
+        <div id={hintId} className="text-sm text-ink-soft">
           {hint}
-        </p>
+        </div>
       )}
       {error && (
-        <p id={errorId} className="text-sm font-medium text-coral-deep" role="alert">
-          {error}
+        <p id={errorId} className="flex items-start gap-1.5 text-sm font-medium text-coral-deep" role="alert">
+          <ErrorIcon />
+          <span>{error}</span>
         </p>
+      )}
+      {extra && (
+        <div id={extraId} className="text-sm text-ink-soft">
+          {extra}
+        </div>
       )}
     </div>
   )

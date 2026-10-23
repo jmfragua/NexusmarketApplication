@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -8,9 +8,13 @@ import { authApi } from '@/api/endpoints'
 import { describeError } from '@/api/errors'
 import { Button } from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Field'
+import { FormAlert } from '@/components/ui/FormAlert'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import { newId } from '@/lib/id'
 import { rememberPrimaryAddress } from './addressBook'
 import { AuthShell } from './AuthShell'
+import { PasswordMatch, PasswordRules } from './PasswordFeedback'
+import { MIN_PASSWORD_LENGTH } from './passwordRules'
 import { useSession } from './session'
 
 const schema = z
@@ -19,7 +23,7 @@ const schema = z
     email: z.string().trim().min(1, 'escribe tu correo').email('ese correo no parece válido'),
     identityDocument: z.string().trim().min(5, 'el documento debe tener al menos 5 caracteres'),
     primaryAddress: z.string().trim().min(8, 'escribe una dirección completa, con ciudad'),
-    password: z.string().min(8, 'usa al menos 8 caracteres'),
+    password: z.string().min(MIN_PASSWORD_LENGTH, `usa al menos ${MIN_PASSWORD_LENGTH} caracteres`),
     confirm: z.string(),
   })
   .refine((v) => v.password === v.confirm, { path: ['confirm'], message: 'las contraseñas no coinciden' })
@@ -33,6 +37,8 @@ export function RegisterPage() {
     defaultValues: { fullName: '', email: '', identityDocument: '', primaryAddress: '', password: '', confirm: '' },
   })
   const errors = form.formState.errors
+  const password = useWatch({ control: form.control, name: 'password' })
+  const confirm = useWatch({ control: form.control, name: 'confirm' })
 
   const register = useMutation({
     mutationFn: (values: Values) =>
@@ -56,7 +62,7 @@ export function RegisterPage() {
     <AuthShell
       title="crea tu cuenta"
       description="las cuentas que se crean aquí son de comprador. Los vendedores los incorpora el equipo de NexusMarket."
-      aside={<p className="font-display text-4xl leading-tight font-bold">una cuenta, todas las tiendas.</p>}
+      aside={<p>una cuenta, todas las tiendas.</p>}
     >
       <form noValidate onSubmit={form.handleSubmit((values) => register.mutate(values))} className="grid gap-5">
         <Field label="Nombre completo" error={errors.fullName?.message}>
@@ -70,22 +76,26 @@ export function RegisterPage() {
             <Input inputMode="numeric" autoComplete="off" {...form.register('identityDocument')} />
           </Field>
         </div>
-        <Field label="Dirección principal" hint="la usaremos como dirección de entrega por defecto." error={errors.primaryAddress?.message}>
-          <Input autoComplete="street-address" placeholder="Calle 10 # 5-20, Bogotá" {...form.register('primaryAddress')} />
+        <Field
+          label="Dirección principal"
+          hint="Con ciudad, por ejemplo: Calle 10 # 5-20, Bogotá. La usaremos como dirección de entrega por defecto."
+          error={errors.primaryAddress?.message}
+        >
+          <Input autoComplete="street-address" {...form.register('primaryAddress')} />
         </Field>
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Contraseña" error={errors.password?.message}>
-            <Input type="password" autoComplete="new-password" {...form.register('password')} />
+        <div className="grid gap-5">
+          <Field label="Contraseña" error={errors.password?.message} extra={<PasswordRules password={password} />}>
+            <PasswordInput autoComplete="new-password" {...form.register('password')} />
           </Field>
-          <Field label="Repite la contraseña" error={errors.confirm?.message}>
-            <Input type="password" autoComplete="new-password" {...form.register('confirm')} />
+          <Field
+            label="Repite la contraseña"
+            error={errors.confirm?.message}
+            extra={errors.confirm ? undefined : <PasswordMatch password={password} confirm={confirm} />}
+          >
+            <PasswordInput autoComplete="new-password" {...form.register('confirm')} />
           </Field>
         </div>
-        {register.error && (
-          <p role="alert" className="rounded-xl bg-coral-wash px-4 py-3 text-sm font-medium text-coral-deep">
-            {describeError(register.error)}
-          </p>
-        )}
+        {register.error && <FormAlert>{describeError(register.error)}</FormAlert>}
         <Button type="submit" size="lg" loading={register.isPending}>
           Crear mi cuenta
         </Button>
