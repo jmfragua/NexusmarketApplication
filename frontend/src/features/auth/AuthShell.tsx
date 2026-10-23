@@ -20,20 +20,21 @@ interface AuthShellProps {
 }
 
 /**
- * Two columns, form and panel, centred together between the header and the footer. The panel is
- * as tall as its content (headline, covers, stickers), so it never shows an empty stretch, and it
- * is centred against the form, however tall that is.
+ * Two columns, form and panel, centred together between the header and the footer. The columns are
+ * sized to their content (the form is never wider than 28rem), so the gap between them is the grid
+ * gap and nothing else. The panel is as tall as its content, starts level with the headline and
+ * sticks under the header while a long form scrolls.
  */
 export function AuthShell({ title, description, children, aside }: AuthShellProps) {
   return (
     <div className="auth-shell w-full">
-      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-10 sm:px-6 md:grid-cols-[1fr_0.95fr] md:items-center md:gap-12 md:py-12">
+      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-10 sm:px-6 md:grid-cols-[minmax(0,28rem)_minmax(0,32rem)] md:items-start md:justify-center md:gap-16 md:py-12 lg:gap-24">
         <div className="motion-safe:animate-rise">
           <h1 className="text-[clamp(2.2rem,5vw,3.4rem)] font-extrabold">{title}</h1>
           <p className="mt-3 max-w-md text-lg text-ink-soft">{description}</p>
           <div className="mt-7 max-w-md">{children}</div>
         </div>
-        <aside className="relative hidden self-center overflow-hidden rounded-[1.8rem] bg-ink p-7 text-white md:block" aria-hidden="true">
+        <aside className="relative hidden self-start overflow-hidden rounded-[1.8rem] bg-ink p-7 text-white md:sticky md:top-24 md:block" aria-hidden="true">
           <div className="grain absolute inset-0 opacity-30" />
           <div className="relative grid gap-5">
             {aside && <div className="font-display text-[2rem] leading-[1.08] font-bold tracking-[-0.01em]">{aside}</div>}
