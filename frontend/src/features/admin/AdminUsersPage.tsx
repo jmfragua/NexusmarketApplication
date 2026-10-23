@@ -38,7 +38,7 @@ export function AdminUsersPage() {
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
         <section className="grid content-start gap-5 rounded-[var(--radius-card)] bg-card p-5 ring-1 ring-line sm:p-6">
           <Field label="Identificador del usuario" hint="el de cada vendedor aparece en la lista de vendedores." error={idError ?? undefined}>
-            <Input value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="por ejemplo admin-001" autoComplete="off" />
+            <Input value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="Por ejemplo: admin-001" autoComplete="off" />
           </Field>
           <div className="flex flex-wrap gap-2">
             <Button variant="danger" loading={block.isPending} onClick={guard(() => block.mutate(id, onResult))}>

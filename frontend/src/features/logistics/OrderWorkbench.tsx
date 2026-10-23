@@ -91,7 +91,7 @@ export function OrderWorkbench({ order, onDone }: { order: OrderResponse; onDone
         <Select value={chosen} onChange={(e) => setWarehouseId(e.target.value)} disabled={warehouses.isPending}>
           {(warehouses.data?.content ?? []).map((w) => (
             <option key={w.id} value={w.id}>
-              bodega #{shortId(w.id)} · {warehouseTypeLabel[w.warehouseType].toLowerCase()}
+              Bodega #{shortId(w.id)} · {warehouseTypeLabel[w.warehouseType].toLowerCase()}
             </option>
           ))}
         </Select>

@@ -29,7 +29,7 @@ function RestockReturnForm({ items }: { items: InventoryItemResponse[] }) {
   return (
     <form onSubmit={submit} noValidate className="grid gap-4 rounded-[var(--radius-card)] bg-card p-5 ring-1 ring-line sm:grid-cols-[1fr_1fr_auto] sm:items-end">
       <Field label="Devolución" error={error ?? undefined}>
-        <Input value={returnId} onChange={(e) => setReturnId(e.target.value)} placeholder="identificador de la devolución" />
+        <Input value={returnId} onChange={(e) => setReturnId(e.target.value)} placeholder="Identificador de la devolución" />
       </Field>
       <Field label="Registro donde reintegrar">
         <Select value={itemId} onChange={(e) => setItemId(e.target.value)}>

@@ -42,7 +42,7 @@ export function InvoicesPage() {
                     <td className="px-5 py-4 font-mono font-semibold">#{shortId(invoice.id)}</td>
                     <td className="px-5 py-4">
                       <Link to={`/pedidos/${encodeURIComponent(invoice.orderId)}`} className="font-semibold text-cobalt underline-offset-4 hover:underline">
-                        pedido #{shortId(invoice.orderId)}
+                        Pedido #{shortId(invoice.orderId)}
                       </Link>
                     </td>
                     <td className="px-5 py-4 text-right font-semibold tabular-nums">{formatMoney(invoice.totalAmount, invoice.currency)}</td>

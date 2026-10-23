@@ -85,7 +85,10 @@ export function CartPage() {
         />
       ) : (
         <div className="grid gap-8 lg:grid-cols-[1fr_22rem]">
-          <section aria-label="Productos en el carrito" className="rounded-[var(--radius-card)] bg-card px-5 ring-1 ring-line">
+          <section aria-labelledby="carrito-productos" className="rounded-[var(--radius-card)] bg-card px-5 ring-1 ring-line">
+            <h2 id="carrito-productos" className="sr-only">
+              Productos en el carrito
+            </h2>
             {error && (
               <div className="pt-5">
                 <ErrorState error={error} title="no pudimos consultar algunos precios" />

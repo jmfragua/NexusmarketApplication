@@ -37,7 +37,7 @@ export function EmptyState({ title, description, action, art, className }: Empty
           <path d="M26 26a6 6 0 0 1 12 0" fill="none" stroke="var(--color-ink)" strokeWidth="3" />
         </svg>
       )}
-      <h3 className="text-xl">{title}</h3>
+      <h2 className="text-xl">{title}</h2>
       {description && <p className="max-w-md text-ink-soft">{description}</p>}
       {action && <div className="mt-2 flex flex-wrap justify-center gap-2">{action}</div>}
     </div>
@@ -48,7 +48,7 @@ export function ErrorState({ error, onRetry, title }: { error: unknown; onRetry?
   const network = error instanceof ApiError && error.isNetwork
   return (
     <div role="alert" className="grid justify-items-start gap-2 rounded-[var(--radius-card)] border border-coral/40 bg-coral-wash/60 p-5">
-      <h3 className="text-lg">{title ?? (network ? 'no hay conexión con el servidor' : 'no pudimos cargar esta información')}</h3>
+      <h2 className="text-lg">{title ?? (network ? 'no hay conexión con el servidor' : 'no pudimos cargar esta información')}</h2>
       <p className="text-ink-soft">
         {network ? 'revisa que el backend esté encendido y vuelve a intentarlo.' : describeError(error)}
       </p>
@@ -70,7 +70,7 @@ export function Notice({ tone = 'amber', title, children }: { tone?: 'amber' | '
   return (
     <div className={cn('rounded-2xl border px-4 py-3 text-sm', styles)} role="note">
       <p className="font-semibold">{title}</p>
-      {children && <div className="mt-0.5 opacity-90">{children}</div>}
+      {children && <div className="mt-0.5">{children}</div>}
     </div>
   )
 }
