@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parsePrice } from '@/lib/money'
-import { buildAttributes, readProduct, readVariant } from './variant'
+import { buildAttributes, readProduct, readVariant, safeImageSource } from './variant'
 
 describe('parsePrice', () => {
   it.each([
@@ -82,5 +82,34 @@ describe('variant attribute convention', () => {
         ],
       }),
     ).toEqual({ name: 'Termo', price: '68500', currency: 'COP', brand: 'Páramo', Color: 'Coral' })
+  })
+})
+
+describe('safeImageSource', () => {
+  it('keeps a local path served by the frontend', () => {
+    expect(safeImageSource('/productos/morral.jpg')).toBe('/productos/morral.jpg')
+    expect(safeImageSource('  /productos/camiseta-basica_2.jpg ')).toBe('/productos/camiseta-basica_2.jpg')
+  })
+
+  it('keeps an https URL', () => {
+    expect(safeImageSource('https://images.unsplash.com/photo-1?w=800&q=80')).toBe('https://images.unsplash.com/photo-1?w=800&q=80')
+  })
+
+  it.each([
+    ['a path that climbs out with ..', '/productos/../secretos.jpg'],
+    ['a path made only of ..', '/..'],
+    ['a protocol-relative URL', '//evil.example/x.jpg'],
+    ['a javascript: URL', 'javascript:alert(1)'],
+    ['a data: URL', 'data:image/svg+xml,<svg/>'],
+    ['a relative path without the leading slash', 'productos/morral.jpg'],
+    ['a path with a backslash', '/productos\\morral.jpg'],
+    ['a path with spaces', '/productos/mi foto.jpg'],
+  ])('rejects %s', (_, value) => {
+    expect(safeImageSource(value)).toBeNull()
+  })
+
+  it('is what the catalogue reads from a variant', () => {
+    expect(readVariant({ id: 'v', attributes: { name: 'Morral', image: '/productos/morral.jpg' } }).image).toBe('/productos/morral.jpg')
+    expect(readVariant({ id: 'v', attributes: { name: 'Morral', image: '/../etc/passwd' } }).image).toBeNull()
   })
 })

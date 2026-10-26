@@ -118,6 +118,21 @@ application.domain.ports.out       13 puertos de salida, uno por agregado
 application.domain.exceptions      25 excepciones de dominio
 ```
 
+## Imágenes
+
+Las fotos de los productos están dentro del proyecto, en `frontend/public/productos/`, así que se ven sin
+conexión a internet. Vienen de [Unsplash](https://unsplash.com) (licencia gratuita de Unsplash) y se
+descargaron a 800 px de ancho.
+
+Para añadir una nueva:
+
+1. Copia el archivo en `frontend/public/productos/` (por ejemplo `gorra.jpg`; usa solo letras, números,
+   `-`, `_` y `.`, sin espacios).
+2. Al crear la variante desde el panel del vendedor, escribe en el campo **Imagen** la ruta
+   `/productos/gorra.jpg`.
+
+El campo también acepta una URL `https://`. Si la imagen no carga, la tienda dibuja una portada generada.
+
 ## Autor
 
 José Mario Fragua Rengifo

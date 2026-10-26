@@ -33,8 +33,18 @@ function pick(attributes: Record<string, string>, key: ReservedKey): string | nu
   return null
 }
 
-function safeImage(url: string | null): string | null {
+// A path served by the frontend itself, such as /productos/morral.jpg: one leading slash (two would
+// be a protocol-relative URL to another host), plain file-name characters and no ".." segment.
+const LOCAL_IMAGE = /^\/(?!\/)[A-Za-z0-9._~/-]+$/
+
+/**
+ * The image of a variant, or null when it is not one we are willing to load: an http(s) URL or a
+ * local path under the site root. Anything else (javascript:, data:, "//host", "../") is dropped.
+ */
+export function safeImageSource(value: string | null): string | null {
+  const url = value?.trim()
   if (!url) return null
+  if (url.startsWith('/')) return LOCAL_IMAGE.test(url) && !url.split('/').includes('..') ? url : null
   try {
     const parsed = new URL(url)
     return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? parsed.toString() : null
@@ -51,7 +61,7 @@ export function readVariant(variant: ProductVariantResponse): VariantView {
     price: parsePrice(pick(attributes, 'price') ?? undefined),
     currency: (pick(attributes, 'currency') ?? DEFAULT_CURRENCY).toUpperCase(),
     description: pick(attributes, 'description'),
-    image: safeImage(pick(attributes, 'image')),
+    image: safeImageSource(pick(attributes, 'image')),
     brand: pick(attributes, 'brand'),
     options: Object.entries(attributes)
       .filter(([key, value]) => !isReservedKey(key) && value.trim() !== '')

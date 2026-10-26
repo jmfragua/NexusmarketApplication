@@ -4,7 +4,7 @@ import { useFieldArray, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { Button } from '@/components/ui/Button'
 import { Field, Input, Textarea } from '@/components/ui/Field'
-import { buildAttributes, isReservedKey } from '@/features/catalog/variant'
+import { buildAttributes, isReservedKey, safeImageSource } from '@/features/catalog/variant'
 import { parsePrice } from '@/lib/money'
 
 const schema = z.object({
@@ -16,7 +16,7 @@ const schema = z.object({
   image: z
     .string()
     .trim()
-    .refine((v) => v === '' || /^https?:\/\/\S+$/i.test(v), 'pega una dirección que empiece por https://')
+    .refine((v) => v === '' || safeImageSource(v) !== null, 'usa una dirección https:// o una ruta local como /productos/foto.jpg')
     .optional(),
   options: z.array(
     z.object({
@@ -72,8 +72,8 @@ export function VariantForm({ defaults, submitLabel, pending, onSubmit, children
       <Field label="Descripción (opcional)" error={errors.description?.message}>
         <Textarea rows={3} {...form.register('description')} />
       </Field>
-      <Field label="Imagen (opcional)" hint="URL pública de la foto. Si no hay, dibujamos una portada." error={errors.image?.message}>
-        <Input type="url" placeholder="https://…" {...form.register('image')} />
+      <Field label="Imagen (opcional)" hint="URL pública o ruta local como /productos/foto.jpg" error={errors.image?.message}>
+        <Input type="text" inputMode="url" autoComplete="off" spellCheck={false} {...form.register('image')} />
       </Field>
 
       <fieldset className="grid gap-3 rounded-2xl bg-paper p-4">

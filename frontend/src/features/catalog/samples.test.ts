@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { fallbackTitle, readProduct } from './variant'
 import { isSampleId, SAMPLE_PRODUCTS } from './samples'
 
+// The photos in public/productos/, listed (never loaded) by Vite.
+const PUBLIC_PHOTOS = new Set(Object.keys(import.meta.glob('/public/productos/*.jpg')).map((path) => path.replace(/^\/public/, '')))
+
 describe('demo products', () => {
   it('has enough products, of both types, with unique ids', () => {
     expect(SAMPLE_PRODUCTS.length).toBeGreaterThanOrEqual(6)
@@ -32,5 +35,11 @@ describe('demo products', () => {
 
   it('is visible in the catalogue and published', () => {
     expect(SAMPLE_PRODUCTS.every((p) => p.visibleInCatalog && p.status === 'PUBLISHED')).toBe(true)
+  })
+
+  it.each(SAMPLE_PRODUCTS.map((p) => [p.id, p] as const))('%s shows a photo kept inside the project, so it works offline', (_id, product) => {
+    const image = readProduct(product).image
+    expect(image).toMatch(/^\/productos\/[a-z]+\.jpg$/)
+    expect(PUBLIC_PHOTOS.has(image ?? '')).toBe(true)
   })
 })
