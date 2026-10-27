@@ -24,6 +24,7 @@ import type {
   RegisterBuyerRequest,
   RegisterProductRequest,
   RegisterSellerRequest,
+  RegisterStaffRequest,
   RegisterWarehouseRequest,
   RequestReturnRequest,
   SellerResponse,
@@ -115,6 +116,7 @@ export const adminApi = {
   registerSeller: (body: RegisterSellerRequest) => http.post<SellerResponse>('/admin/sellers', body),
   sellers: (params?: PageParams) => http.get<Page<SellerResponse>>('/admin/sellers', pageQuery(params)),
   seller: (sellerId: string) => http.get<SellerResponse>(`/admin/sellers/${enc(sellerId)}`),
+  registerStaff: (body: RegisterStaffRequest) => http.post<UserResponse>('/admin/staff', body),
   block: (userId: string) => http.post<UserResponse>(`/admin/users/${enc(userId)}/block`),
   activate: (userId: string) => http.post<UserResponse>(`/admin/users/${enc(userId)}/activation`),
   changeRole: (userId: string, body: ChangeUserRoleRequest) =>

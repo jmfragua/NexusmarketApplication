@@ -2,7 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { toast } from 'sonner'
 import { describeError } from '@/api/errors'
 import { adminApi } from '@/api/endpoints'
-import type { InvoiceResponse, Role, WarehouseResponse } from '@/api/types'
+import type { InvoiceResponse, RegisterStaffRequest, Role, WarehouseResponse } from '@/api/types'
 import { newId } from '@/lib/id'
 import { readJson, writeJson } from '@/lib/storage'
 
@@ -59,6 +59,14 @@ export function useRegisterSeller() {
     (s) => `incorporamos a ${s.fullName} con su primera bodega`,
     adminKeys.sellers,
   )
+}
+
+/** Incorporates a logistics operator or a supervisor; the form shows its own errors, so no toast. */
+export function useRegisterStaff() {
+  return useMutation({
+    mutationFn: (v: Omit<RegisterStaffRequest, 'userId'>) => adminApi.registerStaff({ ...v, userId: newId() }),
+    onSuccess: (user) => toast.success(`creamos la cuenta de ${user.fullName}`),
+  })
 }
 
 export const useBlockUser = () => useAdminMutation(adminApi.block, (u) => `${u.fullName} quedó bloqueado`, adminKeys.sellers)

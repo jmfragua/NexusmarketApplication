@@ -127,6 +127,18 @@ export interface RegisterSellerRequest {
   firstWarehouseId: string
 }
 
+/** The roles an administrator can incorporate as staff (RD-ROL-09). */
+export type StaffRole = 'LOGISTICS_OPERATOR' | 'SUPERVISOR'
+
+export interface RegisterStaffRequest {
+  userId: string
+  fullName: string
+  email: string
+  identityDocument: string
+  password: string
+  role: StaffRole
+}
+
 export interface ChangeUserRoleRequest {
   role: Role
 }

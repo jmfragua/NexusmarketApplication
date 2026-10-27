@@ -21,6 +21,8 @@ const byRule: Record<string, string> = {
   EmptyCartException: 'tu carrito está vacío; agrega algo antes de confirmar',
   DuplicateEmailException: 'ya existe una cuenta con ese correo',
   DuplicateIdentityDocumentException: 'ya existe una cuenta con ese documento de identidad',
+  DuplicateUserIdentifierException: 'ese identificador de usuario ya está en uso; vuelve a intentarlo',
+  StaffRoleNotAllowedException: 'como personal solo se puede incorporar a operadores logísticos y supervisores',
   DuplicateInventoryItemException: 'ese producto ya tiene un registro de existencias en esa bodega',
   InvalidRoleChangeException: 'ese cambio de rol no está permitido: compradores y vendedores conservan su rol',
   RefundExceedsInvoiceException: 'el reembolso no puede superar el total facturado',
