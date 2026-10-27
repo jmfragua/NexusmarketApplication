@@ -1,7 +1,8 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import type { ProductResponse } from '@/api/types'
 import { Badge } from '@/components/ui/Badge'
 import { cn } from '@/lib/cn'
+import { PARAM } from './catalogFilters'
 import { PriceSticker } from './PriceSticker'
 import { productTone, typeChipRing } from './productTone'
 import { ProductCover } from './ProductCover'
@@ -15,22 +16,39 @@ function TypeIcon({ digital }: { digital: boolean }) {
   )
 }
 
+/** The catalogue URL with the store filter set; the other filters of the current view are kept. */
+function useStoreHref(): (store: string) => string {
+  const { search } = useLocation()
+  return (store) => {
+    const next = new URLSearchParams(search)
+    next.set(PARAM.store, store)
+    return `/?${next.toString()}`
+  }
+}
+
+/**
+ * A product of the catalogue. The link to the product is the title, stretched over the whole card
+ * so the card stays clickable as a whole; the store name is a second link, drawn above it, that
+ * filters the catalogue by that store. Two links side by side, never one inside the other.
+ */
 export function ProductCard({ product, index = 0 }: { product: ProductResponse; index?: number }) {
   const view = readProduct(product)
+  const storeHref = useStoreHref()
   const digital = product.productType === 'DIGITAL'
   const tone = productTone(product.productType)
   const options = view.variants.length
-  // The brand and, when there are several variants, how many: secondary data on one line, so the
-  // type and shipping row at the bottom lines up across the cards of a row.
-  const secondary = [view.brand, options > 1 ? `${options} opciones` : null].filter(Boolean).join(' · ')
   return (
     <li className="motion-safe:animate-rise" style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}>
-      <Link
-        to={`/productos/${encodeURIComponent(product.id)}`}
-        className="group flex h-full flex-col rounded-[var(--radius-card)] bg-card p-2.5 ring-1 ring-line transition-[box-shadow,transform] duration-200 hover:shadow-[0_18px_30px_-18px_rgba(11,18,51,0.5)] hover:ring-ink/40 focus-visible:shadow-[0_18px_30px_-18px_rgba(11,18,51,0.5)] motion-safe:hover:-translate-y-1 motion-safe:focus-visible:-translate-y-1"
+      <article
+        className={cn(
+          'group relative flex h-full flex-col rounded-[var(--radius-card)] bg-card p-2.5 ring-1 ring-line transition-[box-shadow,transform] duration-200',
+          'hover:shadow-[0_18px_30px_-18px_rgba(11,18,51,0.5)] hover:ring-ink/40 motion-safe:hover:-translate-y-1',
+          // Keyboard focus on the product link marks the whole card, which is what the link opens.
+          'has-[.card-link:focus-visible]:shadow-[0_18px_30px_-18px_rgba(11,18,51,0.5)] has-[.card-link:focus-visible]:ring-3 has-[.card-link:focus-visible]:ring-cobalt motion-safe:has-[.card-link:focus-visible]:-translate-y-1',
+        )}
       >
         <div className="relative">
-          <div className="aspect-[4/3] overflow-hidden rounded-[0.9rem] bg-paper">
+          <div className="aspect-[4/3] overflow-hidden rounded-[0.9rem] bg-cobalt-wash">
             <ProductCover
               productId={product.id}
               title={view.title}
@@ -48,8 +66,29 @@ export function ProductCard({ product, index = 0 }: { product: ProductResponse; 
           />
         </div>
         <div className="flex flex-1 flex-col px-1.5 pt-5 pb-1.5">
-          <h3 className="text-lg leading-snug font-bold group-hover:text-cobalt">{view.title}</h3>
-          {secondary && <p className="mt-0.5 text-sm text-ink-soft">{secondary}</p>}
+          <h3 className="text-lg leading-snug font-bold">
+            <Link
+              to={`/productos/${encodeURIComponent(product.id)}`}
+              className="card-link group-hover:text-cobalt after:absolute after:inset-0 after:rounded-[var(--radius-card)] after:content-[''] focus-visible:outline-none"
+            >
+              {view.title}
+            </Link>
+          </h3>
+          {(view.brand || options > 1) && (
+            <p className="mt-0.5 text-sm text-ink-soft">
+              {view.brand && (
+                <Link
+                  to={storeHref(view.brand)}
+                  aria-label={`Ver la tienda ${view.brand}`}
+                  className="relative z-10 rounded-sm font-semibold underline decoration-line-strong decoration-2 underline-offset-[3px] hover:text-cobalt hover:decoration-cobalt"
+                >
+                  {view.brand}
+                </Link>
+              )}
+              {view.brand && options > 1 && ' · '}
+              {options > 1 && `${options} opciones`}
+            </p>
+          )}
           <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 pt-3.5">
             <Badge tone={tone} className={cn('gap-1', typeChipRing[tone])}>
               <TypeIcon digital={digital} />
@@ -58,7 +97,7 @@ export function ProductCard({ product, index = 0 }: { product: ProductResponse; 
             <span className="text-sm text-ink-soft">{digital ? 'Entrega inmediata al pagar' : 'Envío desde bodega'}</span>
           </div>
         </div>
-      </Link>
+      </article>
     </li>
   )
 }

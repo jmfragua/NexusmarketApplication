@@ -62,4 +62,25 @@ describe('register page', () => {
 
     expect(await screen.findByText('las contraseñas no coinciden')).toBeInTheDocument()
   })
+
+  it('gives the email and the identity document a full row each', () => {
+    open()
+    const email = screen.getByLabelText('Correo')
+    const document = screen.getByLabelText('Documento de identidad')
+    for (const input of [email, document]) {
+      expect(input.closest('.sm\\:grid-cols-2')).toBeNull()
+    }
+  })
+
+  it('shows six real product photos in the side panel, with the three labels', () => {
+    open()
+    const panel = document.querySelector('aside') as HTMLElement
+    const photos = [...panel.querySelectorAll('img')].map((img) => img.getAttribute('src'))
+    expect(photos).toHaveLength(6)
+    expect(photos.every((src) => src?.startsWith('/productos/'))).toBe(true)
+    expect(panel).toHaveTextContent('pago único')
+    expect(panel).toHaveTextContent('envío rastreado')
+    expect(panel).toHaveTextContent('muchas tiendas')
+    expect(panel.className).toContain('md:sticky')
+  })
 })

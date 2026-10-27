@@ -68,14 +68,12 @@ export function RegisterPage() {
         <Field label="Nombre completo" error={errors.fullName?.message}>
           <Input autoComplete="name" {...form.register('fullName')} />
         </Field>
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Correo" error={errors.email?.message}>
-            <Input type="email" autoComplete="email" {...form.register('email')} />
-          </Field>
-          <Field label="Documento de identidad" error={errors.identityDocument?.message}>
-            <Input inputMode="numeric" autoComplete="off" {...form.register('identityDocument')} />
-          </Field>
-        </div>
+        <Field label="Correo" error={errors.email?.message}>
+          <Input type="email" autoComplete="email" {...form.register('email')} />
+        </Field>
+        <Field label="Documento de identidad" error={errors.identityDocument?.message}>
+          <Input inputMode="numeric" autoComplete="off" {...form.register('identityDocument')} />
+        </Field>
         <Field
           label="Dirección principal"
           hint="Con ciudad, por ejemplo: Calle 10 # 5-20, Bogotá. La usaremos como dirección de entrega por defecto."

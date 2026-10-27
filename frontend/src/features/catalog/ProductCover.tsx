@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { cn } from '@/lib/cn'
 import { coverDataUri } from './cover'
+import { imageFrame } from './imageFrame'
 
 interface ProductCoverProps {
   productId: string
@@ -35,8 +36,10 @@ type Status = 'loading' | 'loaded' | 'failed'
 function PhotoCover({ productId, title, image, className, alt }: Omit<ProductCoverProps, 'image'> & { image: string }) {
   const [status, setStatus] = useState<Status>('loading')
   if (status === 'failed') return <GeneratedCover productId={productId} className={className} />
+  // Each photo may have its own crop point, or be shown whole on a background taken from its edges.
+  const frame = imageFrame(image)
   return (
-    <span className="relative block size-full">
+    <span className="relative block size-full" style={frame.background ? { background: frame.background } : undefined}>
       {status === 'loading' && <span className="skeleton absolute inset-0 rounded-none" aria-hidden="true" />}
       <img
         src={image}
@@ -46,7 +49,13 @@ function PhotoCover({ productId, title, image, className, alt }: Omit<ProductCov
         draggable={false}
         onLoad={() => setStatus('loaded')}
         onError={() => setStatus('failed')}
-        className={cn('size-full object-cover transition-opacity duration-300', status === 'loaded' ? 'opacity-100' : 'opacity-0', className)}
+        style={{ objectPosition: frame.position }}
+        className={cn(
+          'size-full transition-opacity duration-300',
+          frame.fit === 'contain' ? 'object-contain' : 'object-cover',
+          status === 'loaded' ? 'opacity-100' : 'opacity-0',
+          className,
+        )}
       />
     </span>
   )

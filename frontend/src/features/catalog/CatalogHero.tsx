@@ -17,20 +17,19 @@ const collage = [
 function TileCard({ tile, className, artClassName }: { tile: HeroTile; className: string; artClassName: string }) {
   const view = tile.product ? readProduct(tile.product) : null
   const price = view?.priceFrom ?? null
+  const priceText = view === null ? '' : price === null ? 'precio por definir' : `${view.hasPriceRange ? 'desde ' : ''}${formatMoney(price, view.currency)}`
   // Only the picture is tilted: rotated text is resampled and looks blurry, so the card and its
   // caption stay upright.
   const body = (
     <span className="block rounded-[1.1rem] bg-white p-2 shadow-[5px_6px_0_0_var(--color-ink)] transition-transform duration-200 motion-safe:group-hover:-translate-y-1">
       <span className={cn('block aspect-[4/3] overflow-hidden rounded-[0.8rem] bg-paper [backface-visibility:hidden]', artClassName)}>
-        <ProductCover productId={tile.id} title={view?.title ?? ''} image={view?.image ?? null} alt="" />
+        <ProductCover productId={tile.id} title={view?.title ?? ''} image={view?.image ?? null} />
       </span>
       <span className="block px-1 pt-2 pb-0.5 md:pt-2.5">
         {view ? (
           <>
             <span className="line-clamp-2 min-h-[2.1em] text-[0.8125rem] leading-tight font-bold text-ink md:text-[0.95rem]">{view.title}</span>
-            <span className="mt-0.5 hidden truncate text-sm font-semibold text-ink md:block">
-              {price === null ? 'precio por definir' : `${view.hasPriceRange ? 'desde ' : ''}${formatMoney(price, view.currency)}`}
-            </span>
+            <span className="mt-0.5 hidden truncate text-sm font-semibold text-ink md:block">{priceText}</span>
           </>
         ) : (
           <span className="block h-[2.1em] text-[0.8125rem] md:h-[3.6rem]" aria-hidden="true" />
@@ -41,7 +40,9 @@ function TileCard({ tile, className, artClassName }: { tile: HeroTile; className
   return (
     <li className={cn('motion-safe:animate-rise md:absolute md:w-[34%]', className)}>
       {tile.product ? (
-        <Link to={`/productos/${encodeURIComponent(tile.product.id)}`} className="group block rounded-[1.1rem]">
+        // Named explicitly: the photo carries the product name as its alternative text, and the
+        // caption repeats it, so without a label the name would be read twice.
+        <Link to={`/productos/${encodeURIComponent(tile.product.id)}`} aria-label={`${view?.title ?? ''}, ${priceText}`} className="group block rounded-[1.1rem]">
           {body}
         </Link>
       ) : (

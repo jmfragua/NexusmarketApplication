@@ -14,21 +14,21 @@ const product = (over: Partial<ProductResponse> = {}, variants: Array<Record<str
   ...over,
 })
 
-function card(p: ProductResponse) {
+function card(p: ProductResponse, route = '/') {
   render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[route]}>
       <ul>
         <ProductCard product={p} />
       </ul>
     </MemoryRouter>,
   )
-  return screen.getByRole('link')
+  return screen.getByRole('article')
 }
 
 describe('product card', () => {
   it('shows the name, the brand under it, and the price in a sticker', () => {
     const link = card(product())
-    expect(link).toHaveAttribute('href', '/productos/p-1')
+    expect(within(link).getByRole('link', { name: 'Morral urbano 22 L' })).toHaveAttribute('href', '/productos/p-1')
     expect(within(link).getByRole('heading', { level: 3, name: 'Morral urbano 22 L' })).toBeInTheDocument()
     expect(within(link).getByText('Páramo')).toBeInTheDocument()
     expect(link.querySelector('.sticker')).toHaveTextContent('189.000')
@@ -54,12 +54,13 @@ describe('product card', () => {
 
   it('counts the options of a product with several variants, on the line of the brand', () => {
     const link = card(product({}, [{ name: 'Morral', brand: 'Páramo', price: '189000' }, { name: 'Morral', price: '199000' }, { name: 'Morral', price: '209000' }]))
-    expect(within(link).getByText('Páramo · 3 opciones')).toBeInTheDocument()
+    expect(within(link).getByText('Páramo').closest('p')).toHaveTextContent('Páramo · 3 opciones')
   })
 
   it('shows only the number of options when there is no brand', () => {
     const link = card(product({}, [{ name: 'Morral', price: '189000' }, { name: 'Morral', price: '199000' }]))
     expect(within(link).getByText('2 opciones')).toBeInTheDocument()
+    expect(within(link).getAllByRole('link')).toHaveLength(1)
   })
 
   it('prints "desde" outside the sticker when the variants do not share a price', () => {
@@ -105,5 +106,29 @@ describe('product card', () => {
   it('has no accessible image when it draws the poster', () => {
     card(product())
     expect(screen.queryByRole('img')).toBeNull()
+  })
+
+  it('links the whole card to the product through its title, and the store name to the store filter', () => {
+    const article = card(product())
+    const [title, store] = within(article).getAllByRole('link')
+    expect(title).toHaveTextContent('Morral urbano 22 L')
+    expect(title?.className).toContain('after:inset-0')
+    expect(store).toHaveAccessibleName('Ver la tienda Páramo')
+    expect(store).toHaveAttribute('href', '/?tienda=P%C3%A1ramo')
+    expect(title?.contains(store ?? null)).toBe(false)
+  })
+
+  it('keeps the other filters of the catalogue when it filters by store', () => {
+    const article = card(product(), '/?tipo=fisicos&orden=precio-asc')
+    expect(within(article).getByRole('link', { name: 'Ver la tienda Páramo' })).toHaveAttribute('href', '/?tipo=fisicos&orden=precio-asc&tienda=P%C3%A1ramo')
+  })
+
+  it('shows every photo in the same 4:3 frame on a soft background', () => {
+    const article = card(product({}, [{ name: 'Morral', price: '1000', image: '/productos/morral.jpg' }]))
+    const frame = screen.getByAltText('Morral').closest('.aspect-\\[4\\/3\\]')
+    expect(frame).not.toBeNull()
+    expect(frame?.className).toContain('bg-cobalt-wash')
+    expect(screen.getByAltText('Morral')).toHaveAttribute('loading', 'lazy')
+    expect(article).toContainElement(frame as HTMLElement)
   })
 })

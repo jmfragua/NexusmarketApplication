@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Field'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { describeError } from '@/api/errors'
-import { EmptyState, Notice } from '@/components/ui/States'
+import { EmptyState } from '@/components/ui/States'
+import { StorePage } from '@/components/ui/StorePage'
 import { knownAddresses, readAddressBook, rememberBuyer, type AddressBook } from '@/features/auth/addressBook'
 import { useSession } from '@/features/auth/session'
 
@@ -51,7 +52,7 @@ export function AccountPage() {
   const addresses = knownAddresses(book)
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+    <StorePage className="max-w-3xl">
       <PageHeader title="direcciones de entrega" description={session?.email} />
       <div className="grid gap-6">
         {addresses.length === 0 ? (
@@ -86,10 +87,22 @@ export function AccountPage() {
           </Button>
         </form>
 
-        <Notice tone="cobalt" title="¿por qué solo veo algunas direcciones?">
-          el servidor no ofrece una consulta del perfil; mostramos las direcciones que confirmó la última vez que las modificaste desde este navegador.
-        </Notice>
+        <details className="group rounded-2xl bg-cobalt-wash/60 px-4 py-3 text-ink ring-1 ring-cobalt/20">
+          <summary className="flex cursor-pointer list-none items-center gap-2.5 rounded-lg font-semibold [&::-webkit-details-marker]:hidden">
+            <svg viewBox="0 0 20 20" className="size-5 shrink-0 text-cobalt" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+              <circle cx="10" cy="10" r="7.5" />
+              <path d="M10 9v4.5M10 6.4v.1" strokeWidth="2.2" />
+            </svg>
+            Tus direcciones se guardan en este navegador
+            <svg viewBox="0 0 20 20" className="ml-auto size-4 shrink-0 text-ink-soft transition-transform group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="m5 7.5 5 5 5-5" />
+            </svg>
+          </summary>
+          <p className="mt-2 pl-7.5 text-ink-soft">
+            aquí ves las direcciones que agregaste o elegiste como principal desde este navegador. Si entras desde otro equipo puede que no aparezcan, pero siguen guardadas en tu cuenta, igual que la que usaste al registrarte.
+          </p>
+        </details>
       </div>
-    </div>
+    </StorePage>
   )
 }

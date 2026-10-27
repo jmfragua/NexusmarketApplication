@@ -1,8 +1,10 @@
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { ButtonLink } from '@/components/ui/Button'
 import { buttonClass } from '@/components/ui/buttonStyles'
 import { Logo } from '@/components/Logo'
 import { roleHome, useSession } from '@/features/auth/session'
+import { CartDrawer } from '@/features/cart/CartDrawer'
 import { useCart } from '@/features/cart/queries'
 import { cn } from '@/lib/cn'
 import { roleLabel } from '@/lib/labels'
@@ -22,32 +24,87 @@ const textLink = ({ isActive }: { isActive: boolean }) =>
     isActive && 'underline',
   )
 
-function CartLink() {
-  const { data } = useCart()
-  const count = data?.items.reduce((sum, i) => sum + i.quantity, 0) ?? 0
+function CartIcon() {
   return (
-    <NavLink
-      to="/carrito"
-      className={({ isActive }) =>
-        cn(
-          'relative inline-flex h-11 items-center gap-2 rounded-full px-4 font-semibold ring-1 ring-inset transition-colors',
-          isActive ? 'bg-cobalt-wash text-cobalt-deep ring-cobalt' : 'bg-card ring-line-strong hover:ring-ink',
-        )
-      }
-      aria-label={count > 0 ? `Carrito, ${count} ${count === 1 ? 'producto' : 'productos'}` : 'Carrito vacío'}
-    >
-      <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden="true">
-        <path d="M3 4h2.2l2.2 10.4a1.5 1.5 0 0 0 1.5 1.1h8.6a1.5 1.5 0 0 0 1.4-1.1L21 8H6.3" />
-        <circle cx="9.5" cy="19.5" r="1.3" />
-        <circle cx="17" cy="19.5" r="1.3" />
-      </svg>
+    <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 4h2.2l2.2 10.4a1.5 1.5 0 0 0 1.5 1.1h8.6a1.5 1.5 0 0 0 1.4-1.1L21 8H6.3" />
+      <circle cx="9.5" cy="19.5" r="1.3" />
+      <circle cx="17" cy="19.5" r="1.3" />
+    </svg>
+  )
+}
+
+// The cart pill. Being on the cart page is marked like any current page, with the soft pill: a
+// darker ring would read as a keyboard focus ring.
+const cartPill = (current: boolean) =>
+  cn(
+    'relative inline-flex h-11 items-center gap-2 rounded-full px-4 font-semibold ring-1 ring-inset transition-colors',
+    current ? 'bg-cobalt-wash text-cobalt-deep ring-cobalt/25' : 'bg-card ring-line-strong hover:ring-ink',
+  )
+
+/** A visitor sees the cart too: the cart route asks them to sign in and brings them back to it. */
+function GuestCartLink() {
+  return (
+    <NavLink to="/carrito" className={({ isActive }) => cartPill(isActive)} aria-label="Carrito: ingresa para ver tu carrito">
+      <CartIcon />
       <span className="hidden sm:inline">Carrito</span>
-      {count > 0 && (
-        <span className="grid min-w-6 place-items-center rounded-full bg-lime px-1.5 text-sm font-bold text-ink" aria-hidden="true">
-          {count}
-        </span>
-      )}
     </NavLink>
+  )
+}
+
+/**
+ * A buyer's cart opens the side panel. The count hops once each time it grows, so adding a
+ * product is noticed even from far down the page (only when motion is welcome).
+ */
+function BuyerCartButton() {
+  const { data } = useCart()
+  const { pathname } = useLocation()
+  const [open, setOpen] = useState(false)
+  const count = data?.items.reduce((sum, i) => sum + i.quantity, 0) ?? 0
+  // The count last seen, or null until the cart first loads: the first load is not a growth.
+  const [seen, setSeen] = useState<number | null>(null)
+  const [bumps, setBumps] = useState(0)
+  if (data && count !== seen) {
+    if (seen !== null && count > seen) setBumps(bumps + 1)
+    setSeen(count)
+  }
+  return (
+    <CartDrawer
+      open={open}
+      onOpenChange={setOpen}
+      trigger={
+        <button
+          type="button"
+          className={cartPill(pathname === '/carrito')}
+          aria-haspopup="dialog"
+          aria-label={count > 0 ? `Carrito, ${count} ${count === 1 ? 'producto' : 'productos'}` : 'Carrito vacío'}
+        >
+          <CartIcon />
+          <span className="hidden sm:inline">Carrito</span>
+          {count > 0 && (
+            <span
+              key={bumps}
+              data-bumped={bumps > 0 ? 'true' : undefined}
+              className={cn('grid min-w-6 place-items-center rounded-full bg-lime px-1.5 text-sm font-bold text-ink', bumps > 0 && 'motion-safe:animate-bump')}
+              aria-hidden="true"
+            >
+              {count}
+            </span>
+          )}
+        </button>
+      }
+    />
+  )
+}
+
+/** The initial of the signed-in account; the session only knows the email, so it is read from it. */
+function Avatar({ email }: { email: string }) {
+  const initial = (email.match(/\p{L}|\d/u)?.[0] ?? '?').toUpperCase()
+  return (
+    <span className="grid size-10 shrink-0 place-items-center rounded-full bg-lime font-display text-lg font-bold text-ink ring-2 ring-ink/10" title={email}>
+      <span aria-hidden="true">{initial}</span>
+      <span className="sr-only">Sesión iniciada como {email}</span>
+    </span>
   )
 }
 
@@ -57,12 +114,14 @@ function AccountArea() {
   if (!session) {
     return (
       <div className="flex items-center gap-1 sm:gap-2">
+        <GuestCartLink />
         <NavLink to="/ingresar" className={textLink}>
           Ingresar
         </NavLink>
-        <ButtonLink to="/registro" variant="primary" size="sm" className="h-10 max-sm:px-3.5">
+        {/* On its own page the call to action turns a darker blue; no ring, which would look like focus. */}
+        <NavLink to="/registro" className={({ isActive }) => buttonClass('primary', 'sm', cn('h-10 max-sm:px-3.5', isActive && 'bg-cobalt-deep'))}>
           Crear cuenta
-        </ButtonLink>
+        </NavLink>
       </div>
     )
   }
@@ -70,24 +129,27 @@ function AccountArea() {
     signOut('manual')
     navigate('/')
   }
+  const exit = (
+    <button type="button" onClick={leave} className={buttonClass('ghost', 'sm', 'h-10 max-sm:px-2.5')}>
+      Salir
+    </button>
+  )
   if (session.role !== 'BUYER') {
     return (
       <div className="flex items-center gap-2">
         <ButtonLink to={roleHome[session.role]} variant="accent" size="sm" className="h-10">
           Panel de {roleLabel[session.role].toLowerCase()}
         </ButtonLink>
-        <button type="button" onClick={leave} className={buttonClass('ghost', 'sm', 'h-10')}>
-          Salir
-        </button>
+        <Avatar email={session.email} />
+        {exit}
       </div>
     )
   }
   return (
     <div className="flex items-center gap-1.5">
-      <CartLink />
-      <button type="button" onClick={leave} className={buttonClass('ghost', 'sm', 'h-11')}>
-        Salir
-      </button>
+      <BuyerCartButton />
+      <Avatar email={session.email} />
+      {exit}
     </div>
   )
 }
@@ -98,7 +160,7 @@ const footerLink =
 function Footer() {
   const { session } = useSession()
   return (
-    <footer className="mt-20 bg-ink text-white/85">
+    <footer className="mt-12 bg-ink text-white/85">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-10 sm:px-6 md:grid-cols-[1.5fr_1fr_1fr]">
         <div>
           <Logo inverted />

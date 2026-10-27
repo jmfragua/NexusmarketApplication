@@ -1,9 +1,16 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { ProductCover } from '@/features/catalog/ProductCover'
 
-// Decorative covers for the panel: six different compositions and palettes, each shown whole in its
-// own 4:3 tile (the ratio they are drawn in), so nothing is cropped away.
-const MOSAIC = ['acceso-3', 'acceso-2', 'acceso-16', 'acceso-17', 'acceso-8', 'acceso-14']
+// Six real photos of the catalogue, kept in public/productos/. The id is only the seed of the
+// generated poster a tile falls back to when its photo cannot load.
+const MOSAIC = [
+  { id: 'acceso-3', image: '/productos/morral.jpg' },
+  { id: 'acceso-2', image: '/productos/audifonos.jpg' },
+  { id: 'acceso-16', image: '/productos/cafe.jpg' },
+  { id: 'acceso-17', image: '/productos/tenis.jpg' },
+  { id: 'acceso-8', image: '/productos/lampara.jpg' },
+  { id: 'acceso-14', image: '/productos/reloj.jpg' },
+]
 
 const STICKERS: Array<{ label: string; tone: string; tilt: string }> = [
   { label: 'pago único', tone: 'lime', tilt: '-4deg' },
@@ -39,9 +46,9 @@ export function AuthShell({ title, description, children, aside }: AuthShellProp
           <div className="relative grid gap-5">
             {aside && <div className="font-display text-[2rem] leading-[1.08] font-bold tracking-[-0.01em]">{aside}</div>}
             <div className="grid grid-cols-3 gap-3">
-              {MOSAIC.map((id) => (
-                <div key={id} className="aspect-[4/3] overflow-hidden rounded-2xl ring-2 ring-white/15">
-                  <ProductCover productId={id} title="" image={null} />
+              {MOSAIC.map((tile) => (
+                <div key={tile.id} className="aspect-[4/3] overflow-hidden rounded-2xl bg-white/10 ring-2 ring-white/15">
+                  <ProductCover productId={tile.id} title="" image={tile.image} alt="" />
                 </div>
               ))}
             </div>

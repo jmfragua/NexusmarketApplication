@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ButtonLink } from '@/components/ui/Button'
+import { ReceiptArt } from '@/components/ui/EmptyArt'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Pagination } from '@/components/ui/Pagination'
 import { EmptyState, ErrorState, LoadingRows } from '@/components/ui/States'
+import { StorePage } from '@/components/ui/StorePage'
 import { shortId } from '@/lib/id'
 import { formatMoney } from '@/lib/money'
 import { useMyInvoices } from './queries'
@@ -12,7 +14,7 @@ export function InvoicesPage() {
   const [page, setPage] = useState(0)
   const { data, isPending, error, refetch } = useMyInvoices(page)
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
+    <StorePage>
       <PageHeader title="facturas" description="cada factura corresponde a un pedido pagado." />
       {isPending ? (
         <LoadingRows label="cargando tus facturas" />
@@ -20,6 +22,7 @@ export function InvoicesPage() {
         <ErrorState error={error} onRetry={() => void refetch()} />
       ) : data.content.length === 0 ? (
         <EmptyState
+          art={<ReceiptArt />}
           title="todavía no tienes facturas"
           description="la factura se emite después de confirmar el pago de un pedido."
           action={<ButtonLink to="/pedidos" variant="outline">Ver mis pedidos</ButtonLink>}
@@ -54,6 +57,6 @@ export function InvoicesPage() {
           <Pagination page={data} onChange={setPage} />
         </>
       )}
-    </div>
+    </StorePage>
   )
 }

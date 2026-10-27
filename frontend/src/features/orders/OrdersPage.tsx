@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ButtonLink } from '@/components/ui/Button'
+import { BoxArt } from '@/components/ui/EmptyArt'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Pagination } from '@/components/ui/Pagination'
 import { EmptyState, ErrorState, LoadingRows } from '@/components/ui/States'
+import { StorePage } from '@/components/ui/StorePage'
 import { shortId } from '@/lib/id'
 import { formatMoney } from '@/lib/money'
 import { OrderStatusBadge } from './OrderStatusBadge'
@@ -14,14 +16,14 @@ export function OrdersPage() {
   const { data, isPending, error, refetch } = useMyOrders(page)
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
+    <StorePage>
       <PageHeader title="mis pedidos" description="sigue cada compra desde el pago hasta la entrega." />
       {isPending ? (
         <LoadingRows label="cargando tus pedidos" />
       ) : error ? (
         <ErrorState error={error} onRetry={() => void refetch()} />
       ) : data.content.length === 0 ? (
-        <EmptyState title="aún no tienes pedidos" description="cuando pagues tu primer carrito, aparecerá aquí." action={<ButtonLink to="/">Explorar el catálogo</ButtonLink>} />
+        <EmptyState art={<BoxArt />} title="aún no tienes pedidos" description="cuando pagues tu primer carrito, aparecerá aquí." action={<ButtonLink to="/">Explorar el catálogo</ButtonLink>} />
       ) : (
         <>
           <ul className="grid gap-3">
@@ -51,6 +53,6 @@ export function OrdersPage() {
           <Pagination page={data} onChange={setPage} />
         </>
       )}
-    </div>
+    </StorePage>
   )
 }

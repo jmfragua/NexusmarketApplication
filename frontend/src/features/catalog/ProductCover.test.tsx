@@ -58,4 +58,28 @@ describe('ProductCover', () => {
     const { container } = render(<ProductCover productId="p-1" title="Morral" image={photo} alt="" />)
     expect(image(container).getAttribute('alt')).toBe('')
   })
+
+  it('shows the whole lamp, contained on a background matching the photo', () => {
+    const { container } = render(<ProductCover productId="p-1" title="Lámpara" image="/productos/lampara.jpg" />)
+    expect(image(container).className).toContain('object-contain')
+    expect(image(container).className).not.toContain('object-cover')
+    expect((image(container).parentElement as HTMLElement).style.background).toContain('linear-gradient')
+  })
+
+  it('crops the sneakers lower than the centre', () => {
+    const { container } = render(<ProductCover productId="p-1" title="Tenis" image="/productos/tenis.jpg" />)
+    expect(image(container).style.objectPosition).toBe('50% 58%')
+    expect(image(container).className).toContain('object-cover')
+  })
+
+  it('keeps the centred crop for a photo that is not in the map', () => {
+    const { container } = render(<ProductCover productId="p-1" title="Morral" image={photo} />)
+    expect(image(container).style.objectPosition).toBe('center')
+  })
+
+  it('still falls back to the generated poster when a framed photo fails', () => {
+    const { container } = render(<ProductCover productId="p-1" title="Lámpara" image="/productos/lampara.jpg" />)
+    fireEvent.error(image(container))
+    expect(image(container).src).toMatch(/^data:image\/svg\+xml/)
+  })
 })

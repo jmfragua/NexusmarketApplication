@@ -82,7 +82,9 @@ export function ProductPage() {
       { productId: product.id, productVariantId: selected.id, quantity },
       {
         onSuccess: () =>
-          toast.success('agregamos el producto a tu carrito', {
+          toast.success('añadido al carrito', {
+            description: selected.name ?? view.title,
+            duration: 4000,
             action: { label: 'Ver carrito', onClick: () => navigate('/carrito') },
           }),
       },
