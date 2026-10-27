@@ -1,122 +1,159 @@
 # NexusMarket
 
-Backend de un marketplace multi-vendedor, desarrollado en **Java 17** con **Spring Boot 4.1.1**,
-siguiendo arquitectura hexagonal (Ports & Adapters) con un núcleo de dominio DDD. Proyecto
-académico para la asignatura *Construcción de Software 2*.
+Marketplace multi-vendedor: muchos vendedores, un solo carrito. Proyecto académico para la
+asignatura *Construcción de Software 2*.
 
-## Arquitectura
-
-El proyecto separa el dominio de negocio de los detalles técnicos mediante puertos y adaptadores:
-
-- **Dominio** (`application.domain`) — entidades, value objects, excepciones, puertos y servicios.
-  No importa nada de Spring, JPA, MongoDB ni ningún otro framework.
-- **Casos de uso** (`application.adapters.useCases`) — implementan los puertos de entrada
-  delegando en los servicios de dominio.
-- **Persistencia** (`application.adapters.persistence`) — adaptadores JPA (MySQL) para los 12
-  agregados de negocio, y un adaptador MongoDB para el log de auditoría.
-- **REST** (`application.adapters.rest`) — controladores, DTOs y mappers.
-- **Seguridad** (`application.infrastructure.security`) — autenticación JWT.
-
-Todas las capas están implementadas: 294 archivos de producción, cubiertos por 217 pruebas.
-
-La documentación de diseño completa, con trazabilidad a las reglas de negocio, está en
-[`SDD/`](SDD/):
-
-- [Domain Model](<SDD/domain/Domain Model.md>) — entidades, ciclos de vida y reglas de negocio.
-- [Domain Value Objects](<SDD/domain/Domain Value Objects.md>) — value objects y enumeraciones.
-- [Domain Services](<SDD/domain/Domain Services.md>) — los 52 servicios de dominio.
-- [Input-ports](<SDD/domain/Input-ports.md>) / [Output-ports](<SDD/domain/Output-ports.md>) —
-  puertos de entrada (por rol) y de salida (por agregado).
-- [Software Architecture](<SDD/Software Architecture/Software Architecture.md>) — capas y
-  decisiones de arquitectura.
-- [`SDD/Adapters/`](SDD/Adapters/) y [`SDD/Infrastructure/`](SDD/Infrastructure/) — casos de uso,
-  persistencia, REST, seguridad y el bootstrap del administrador inicial.
-
-## Tecnologías
-
-- Java 17, Maven
-- Spring Boot 4.1.1 (Web, Data JPA, Data MongoDB, Security, Validation, Actuator)
-- MySQL 8.4 — persistencia de los 12 agregados de negocio
-- MongoDB 7 — log de auditoría (`OperationLog`)
-- JWT (`io.jsonwebtoken`) — autenticación stateless
-- springdoc-openapi — documentación interactiva de la API (Swagger UI)
-- Lombok
-- JUnit 5, H2 (en memoria, solo para pruebas)
+- **Backend:** Java 17 y Spring Boot 4.1.1, con arquitectura hexagonal (Ports & Adapters) y núcleo
+  de dominio DDD. Persiste los 12 agregados de negocio en **MySQL 8.4** y el log de auditoría en
+  **MongoDB 7**. Autenticación JWT.
+- **Frontend:** React, Vite y TypeScript, en [`frontend/`](frontend/). Tienda para compradores y
+  paneles para vendedor, operador logístico, administrador y supervisor.
 
 ## Requisitos
 
-- Java 17
-- Maven (o usar el wrapper `./mvnw` incluido)
-- Docker y Docker Compose (para levantar MySQL y MongoDB sin instalarlos localmente)
+- **Docker** con Docker Compose (MySQL, MongoDB y el backend corren en contenedores).
+- **Java 17**, solo si vas a correr el backend o sus pruebas fuera de Docker (el wrapper `./mvnw`
+  ya trae Maven).
+- **Node.js 22.12 o superior** para el frontend. Vite 8 y Vitest 5, que usa el proyecto, no
+  arrancan con versiones anteriores (en concreto, no con Node 18).
 
 ## Puesta en marcha
 
-### Con Docker (recomendado)
+### 1. Backend y bases de datos
 
 ```bash
-cp .env.example .env        # y escribe SEED_ADMIN_PASSWORD (y JWT_SECRET) en .env
-docker compose up --build
+cp .env.example .env        # solo la primera vez; escribe SEED_ADMIN_PASSWORD (y JWT_SECRET)
+docker compose up -d
 ```
 
-`SEED_ADMIN_PASSWORD` es obligatoria: sin ella no se crea ningún administrador inicial y, dado que
-solo los compradores pueden autorregistrarse, no habría forma de crear vendedores ni bodegas. Por eso
-Compose se niega a arrancar si falta, con el mensaje
-`Define SEED_ADMIN_PASSWORD (in the environment or in .env)`. También puedes pasarla sin `.env`:
+`SEED_ADMIN_PASSWORD` es obligatoria: crea el administrador inicial la primera vez que la base está
+vacía, y Compose se niega a arrancar si falta. Todas las variables, con su valor por defecto, están
+en [`.env.example`](.env.example). `.env` está en `.gitignore`: no lo subas al repositorio.
+
+> **No uses `docker compose down -v`.** La opción `-v` borra los volúmenes con todos los datos
+> (usuarios, productos, pedidos y stock). Para detener los contenedores basta con
+> `docker compose stop` o `docker compose down` sin `-v`.
+
+Comprueba que el backend responde:
 
 ```bash
-SEED_ADMIN_PASSWORD='una-contraseña-larga-y-única' docker compose up --build
+curl http://localhost:8080/actuator/health        # → {"status":"UP", ...}
 ```
 
-El administrador inicial se crea **solo la primera vez** (con la base vacía). Ingresa con
-`SEED_ADMIN_EMAIL` (por omisión `admin@nexusmarket.local`) y esa contraseña. Detalles del proceso
-en [Bootstrap.md](<SDD/Infrastructure/Bootstrap.md>).
+La documentación interactiva de la API está en `http://localhost:8080/swagger-ui.html`.
 
-Todas las variables, con su valor por defecto, están documentadas en [`.env.example`](.env.example):
-administrador inicial (`SEED_ADMIN_*`), seguridad (`JWT_SECRET`, `JWT_EXPIRATION_MINUTES`,
-`CORS_ALLOWED_ORIGINS`), bases de datos (`MYSQL_*`, `MONGO_*`, `JPA_DDL_AUTO`) y puertos del host
-(`HOST_SERVER_PORT`, `HOST_MYSQL_PORT`, `HOST_MONGO_PORT`). En cualquier despliegue real define un
-`JWT_SECRET` propio de al menos 32 caracteres: el valor por defecto es solo para desarrollo.
-
-La aplicación queda disponible en `http://localhost:8080`. `.env` está en `.gitignore`: nunca lo
-subas al repositorio.
-
-### Localmente, apuntando a los contenedores de bases de datos
+### 2. Frontend
 
 ```bash
-docker compose up mysql-db mongo-db      # con .env creado: Compose valida el archivo completo
-SEED_ADMIN_PASSWORD=una-contraseña-segura ./mvnw spring-boot:run
+cd frontend
+npm install                 # solo la primera vez
+npm run dev
 ```
 
-## Documentación de la API
+Abre `http://localhost:5173`. Si el backend no responde, la tienda muestra 8 productos de
+ejemplo (no se pueden comprar) con el aviso «estás viendo productos de ejemplo».
 
-Con la aplicación corriendo:
+## Cuentas de prueba (solo local)
 
-- Swagger UI: `http://localhost:8080/swagger-ui.html`
-- Especificación OpenAPI: `http://localhost:8080/v3/api-docs`
+> **Estas claves son solo para la demo local. No las uses nunca en un despliegue real.**
 
-## Pruebas
+| Rol | Correo | Contraseña |
+|---|---|---|
+| Administrador | `admin@nexusmarket.local` | `Admin12345` (la de `SEED_ADMIN_PASSWORD` en `.env`) |
+| Operador logístico | `logistica@nexusmarket.local` | *Pendiente:* no está en `.env` ni en el seed; es la que se definió al crearla desde **Admin › Usuarios › Crear personal**. |
+| Supervisor | `supervisor@nexusmarket.local` | `Supervisor123` |
+| Vendedor | `paramo@nexusmarket.test` | `Vendedor123` (tienda de prueba **Páramo**, dueña de los 21 productos del catálogo) |
+| Comprador | — | Se crea desde `/registro`. |
 
-Corren contra H2 en memoria bajo el perfil `test`, así que no necesitan ninguna base de datos
-levantada:
+- **Compradores:** son los únicos que se registran solos, en `/registro`.
+- **Vendedores:** no se registran solos. Los incorpora el administrador desde
+  **Admin › Vendedores › Incorporar vendedor**, junto con su primera bodega.
+- **Personal:** el operador logístico y el supervisor los crea el administrador desde
+  **Admin › Usuarios › Crear personal**.
+
+## Flujo completo para probar
+
+| # | Paso | Rol | Dónde |
+|---|---|---|---|
+| 1 | Agregar productos al carrito | Comprador | Catálogo › producto › *Agregar al carrito* |
+| 2 | Confirmar el carrito y pagar (el pedido queda **Pagado**) | Comprador | Carrito › *Ir a pagar* |
+| 3 | Emitir la factura del pedido pagado | Administrador | Admin › Facturación |
+| 4 | Reservar las unidades del pedido | Operador logístico | Logística › pedido › *Reservar* |
+| 5 | Salida por venta (las unidades salen de la bodega) | Operador logístico | Logística › pedido › *Salida por venta* |
+| 6 | Empacar el envío | Operador logístico | Logística › pedido › *Empacar* |
+| 7 | Despachar (el pedido queda **Despachado**) | Operador logístico | Logística › pedido › *Despachar* |
+| 8 | Confirmar la entrega (el pedido queda **Entregado**) | Operador logístico | Logística › pedido › *Confirmar entrega* |
+| 9 | Ver la factura | Comprador | Mis pedidos › pedido, o Facturas |
+| 10 | Solicitar una devolución (solo con el pedido entregado) | Comprador | Mis pedidos › pedido › *Devolver* |
+| 11 | Reintegrar al stock lo devuelto (opcional) | Operador logístico | Logística › Bodegas › *reintegrar una devolución* |
+| 12 | Emitir el reembolso (nunca mayor que lo facturado) | Administrador | Admin › Devoluciones y reembolsos |
+
+Durante todo el flujo, el **supervisor** consulta los reportes en su panel: pedidos completados,
+facturación, inventario por bodega, stock dañado, movimientos y reembolsos.
+
+## Cómo funciona el inventario
+
+- **Por producto y bodega, no por variante.** Cada registro de inventario liga un producto a una
+  bodega. Las variantes (talla, color…) de un producto comparten ese mismo stock.
+- **Pagar no toca el stock.** El inventario cambia solo con las operaciones de bodega:
+  - **Reservar** pasa unidades de *disponible* a *reservado* para un pedido.
+  - **Salida por venta** saca de la bodega las unidades reservadas. Ahí se descuentan
+    definitivamente.
+  - Una reserva se puede **liberar**, y una devolución puede **reintegrar** unidades.
+- **Nunca hay existencias negativas.** Una reserva o una salida que supere lo que hay se rechaza.
+- **Sin stock para productos digitales.** No llevan inventario y el backend no permite abrirles un
+  registro.
+
+## Limitaciones conocidas del backend
+
+Están documentadas y no se modifican en esta entrega:
+
+- **El checkout no valida stock.** Se puede pagar un pedido aunque no haya existencias. El stock se
+  valida al reservar, en logística.
+- **El despacho no exige reserva previa.** Solo exige que el pedido esté pagado.
+- **El administrador no tiene listados de usuarios, facturas ni pedidos.**
+  - Bloquear, reactivar o cambiar el rol se hace con el identificador del usuario.
+  - Una factura se consulta a partir de su pedido.
+  - El supervisor sí tiene reportes de pedidos y facturación.
+- **No se puede crear un administrador directamente.** «Crear personal» solo acepta operador
+  logístico o supervisor. Para tener otro administrador, se crea como personal y luego se le cambia
+  el rol en **Admin › Usuarios**.
+
+## Pruebas y verificación
+
+**Backend:** corre contra H2 en memoria (perfil `test`), así que no necesita ninguna base de datos
+levantada.
 
 ```bash
 ./mvnw test                                      # toda la suite
 ./mvnw test -Dtest=ClassName                     # una clase
-./mvnw test -Dtest=ClassName#methodName          # un método
 ```
 
-## Estructura del dominio
+**Frontend:** desde `frontend/`.
 
+```bash
+npm test          # pruebas (Vitest + Testing Library)
+npm run lint      # oxlint, sin advertencias permitidas
+npm run build     # compilación de TypeScript y build de producción
 ```
-application.domain.models          23 archivos: DomainEntity<ID> + 22 entidades
-application.domain.valuesObjects   37 value objects y enumeraciones
-application.domain.services        52 servicios en 14 áreas (authorization, user, seller,
-                                    warehouse, catalog, inventory, cart, order, invoice,
-                                    shipment, returns, refund, reporting, audit)
-application.domain.ports.in        6 puertos de entrada, uno por rol
-application.domain.ports.out       13 puertos de salida, uno por agregado
-application.domain.exceptions      25 excepciones de dominio
-```
+
+## Arquitectura
+
+- **Dominio** (`application.domain`): entidades, value objects, excepciones, puertos y servicios.
+  No importa nada de Spring, JPA ni MongoDB.
+- **Casos de uso** (`application.adapters.useCases`): implementan los puertos de entrada, uno por
+  rol.
+- **Persistencia** (`application.adapters.persistence`): JPA para MySQL y un adaptador MongoDB para
+  la auditoría.
+- **REST** (`application.adapters.rest`): controladores, DTOs y mappers.
+- **Seguridad** (`application.infrastructure.security`): autenticación JWT.
+
+La documentación de diseño, con trazabilidad a las reglas de negocio, está en [`SDD/`](SDD/):
+[modelo de dominio](<SDD/domain/Domain Model.md>), [value objects](<SDD/domain/Domain Value Objects.md>),
+[servicios](<SDD/domain/Domain Services.md>), [puertos de entrada](<SDD/domain/Input-ports.md>) y
+[de salida](<SDD/domain/Output-ports.md>), [arquitectura](<SDD/Software Architecture/Software Architecture.md>),
+y en [`SDD/Adapters/`](SDD/Adapters/) y [`SDD/Infrastructure/`](SDD/Infrastructure/) los adaptadores,
+la seguridad y el [arranque del administrador inicial](<SDD/Infrastructure/Bootstrap.md>).
 
 ## Imágenes
 
