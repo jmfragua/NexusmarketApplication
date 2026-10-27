@@ -131,3 +131,8 @@ export function storesOf(products: ProductResponse[]): string[] {
 export function sameStore(a: string, b: string | null): boolean {
   return b !== null && normalize(a) === normalize(b)
 }
+
+/** The catalogue filtered by one brand: the URL the cards, the chips and the product page share. */
+export function storeHref(brand: string): string {
+  return `/?${new URLSearchParams({ [PARAM.store]: brand }).toString()}`
+}

@@ -4,11 +4,11 @@ import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { QuantityStepper } from '@/components/ui/QuantityStepper'
 import { EmptyState, ErrorState, LoadingRows, Notice } from '@/components/ui/States'
 import { ProductCover } from '@/features/catalog/ProductCover'
 import { formatMoney } from '@/lib/money'
-import { useCart, useClearCart, usePricedCart, useRemoveCartItem, useUpdateCartItem } from './queries'
+import { CartLineControls } from './CartLineControls'
+import { useCart, useClearCart, usePricedCart } from './queries'
 import type { PricedLine } from './totals'
 
 const problemText: Record<NonNullable<PricedLine['problem']>, string> = {
@@ -18,9 +18,6 @@ const problemText: Record<NonNullable<PricedLine['problem']>, string> = {
 }
 
 function CartLine({ line }: { line: PricedLine }) {
-  const update = useUpdateCartItem()
-  const remove = useRemoveCartItem()
-  const busy = update.isPending || remove.isPending
   const productHref = `/productos/${encodeURIComponent(line.item.productId)}`
   return (
     <li className="grid grid-cols-[4.5rem_1fr] gap-4 py-5 sm:grid-cols-[6rem_1fr_auto] sm:items-center">
@@ -43,18 +40,7 @@ function CartLine({ line }: { line: PricedLine }) {
         )}
       </div>
       <div className="col-span-2 flex items-center justify-between gap-3 sm:col-span-1 sm:flex-col sm:items-end">
-        <div className="flex items-center gap-2">
-          <QuantityStepper
-            size="sm"
-            label={`Cantidad de ${line.title}`}
-            value={line.item.quantity}
-            disabled={busy || line.problem === 'unavailable' || line.problem === 'variant-missing'}
-            onChange={(quantity) => update.mutate({ cartItemId: line.item.id, quantity })}
-          />
-          <Button variant="ghost" size="sm" onClick={() => remove.mutate(line.item.id)} disabled={busy} aria-label={`Quitar ${line.title} del carrito`}>
-            Quitar
-          </Button>
-        </div>
+        <CartLineControls line={line} />
         <p className="font-display text-xl font-bold tabular-nums">
           {line.lineAmount !== null ? formatMoney(line.lineAmount, line.currency ?? undefined) : '—'}
         </p>

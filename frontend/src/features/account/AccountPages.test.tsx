@@ -11,8 +11,9 @@ const emptyPage = { status: 200, body: { content: [], page: 0, size: 20, totalEl
 
 function open(page: ReactElement) {
   localStorage.setItem('nexusmarket.session', JSON.stringify({ token: 't', userId: 'u', email: 'u@nexusmarket.test', role: 'BUYER', expiresAt: null }))
-  fakeBackend({ 'GET /buyer/me/orders': () => emptyPage, 'GET /buyer/me/invoices': () => emptyPage })
+  const backend = fakeBackend({ 'GET /buyer/me/orders': () => emptyPage, 'GET /buyer/me/invoices': () => emptyPage })
   renderApp(page)
+  return backend.calls
 }
 
 describe('account pages', () => {
@@ -62,5 +63,14 @@ describe('addresses page', () => {
   it('offers no edit or delete action, which the API does not have', () => {
     open(<AccountPage />)
     expect(screen.queryByRole('button', { name: /editar|borrar|eliminar/i })).toBeNull()
+  })
+
+  it('asks for number and city before saving an address, and sends nothing until then', async () => {
+    const calls = open(<AccountPage />)
+    expect(screen.getByText(/Con número y ciudad, por ejemplo: Calle 10 # 5-20, Bogotá/)).toBeInTheDocument()
+    await userEvent.type(screen.getByLabelText('Dirección'), 'Calle 10 # 5-20 Bogotá')
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar dirección' }))
+    expect(screen.getByText(/separa la ciudad con una coma/)).toBeInTheDocument()
+    expect(calls.some((c) => c.key === 'POST /buyer/me/addresses')).toBe(false)
   })
 })

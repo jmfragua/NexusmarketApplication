@@ -87,3 +87,15 @@ describe('toOrderLines', () => {
     expect(() => toOrderLines(totals, () => 'x')).toThrow(/ya no están disponibles/)
   })
 })
+
+describe('cart line text', () => {
+  it('does not repeat the product name as the variant text', () => {
+    const mouse = product('p', [['v', { name: 'Mouse inalámbrico Pulso', price: '59900' }]])
+    const shirt = product('s', [['m', { name: 'Camiseta', price: '49900', Talla: 'M' }]])
+    const { lines } = priceCart([item('1', 'p', 'v', 1), item('2', 's', 'm', 1)], new Map([['p', mouse], ['s', shirt]]))
+    expect(lines.map((l) => [l.title, l.variantText])).toEqual([
+      ['Mouse inalámbrico Pulso', ''],
+      ['Camiseta', 'M'],
+    ])
+  })
+})

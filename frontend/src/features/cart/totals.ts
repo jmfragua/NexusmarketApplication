@@ -1,5 +1,5 @@
 import type { CartItemResponse, OrderLineRequest, ProductResponse } from '@/api/types'
-import { readProduct, variantLabel, type ProductView, type VariantView } from '@/features/catalog/variant'
+import { readProduct, variantDetail, type ProductView, type VariantView } from '@/features/catalog/variant'
 import { roundMoney } from '@/lib/money'
 
 export type LineProblem = 'unavailable' | 'variant-missing' | 'no-price'
@@ -69,7 +69,7 @@ export function priceCart(
       product,
       variant,
       title: variant.name ?? product.title,
-      variantText: variantLabel(variant),
+      variantText: variantDetail(variant, product.title),
       unitPrice,
       lineAmount: unitPrice === null ? null : roundMoney(unitPrice * item.quantity),
       currency: variant.currency,

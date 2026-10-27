@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ProductCover } from '@/features/catalog/ProductCover'
 import { formatMoney } from '@/lib/money'
+import { CartLineControls } from './CartLineControls'
 import { useCart, usePricedCart } from './queries'
 
 /**
@@ -23,13 +24,13 @@ export function CartDrawer({ open, onOpenChange, trigger }: { open: boolean; onO
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
       <RadixDialog.Trigger asChild>{trigger}</RadixDialog.Trigger>
       <RadixDialog.Portal>
-        <RadixDialog.Overlay className="fixed inset-0 z-40 bg-ink/45 backdrop-blur-[2px]" />
+        <RadixDialog.Overlay className="fixed inset-0 z-40 bg-ink/35" />
         <RadixDialog.Content className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-paper shadow-[-24px_0_60px_-20px_rgba(11,18,51,0.45)] outline-none motion-safe:data-[state=open]:animate-drawer">
           <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
             <div>
               <RadixDialog.Title className="font-display text-2xl font-bold">tu carrito</RadixDialog.Title>
               <RadixDialog.Description className="text-sm text-ink-soft">
-                {empty ? 'todavía no tienes productos.' : `${totals.itemCount} ${totals.itemCount === 1 ? 'producto' : 'productos'}, precios del catálogo de hoy.`}
+                {empty ? 'todavía no tienes productos.' : `${totals.itemCount} ${totals.itemCount === 1 ? 'artículo' : 'artículos'} en tu carrito`}
               </RadixDialog.Description>
             </div>
             <RadixDialog.Close className="grid size-10 shrink-0 place-items-center rounded-full text-ink-soft hover:bg-ink/6 hover:text-ink" aria-label="Cerrar el carrito">
@@ -52,14 +53,23 @@ export function CartDrawer({ open, onOpenChange, trigger }: { open: boolean; onO
                       <ProductCover productId={line.item.productId} title={line.title} image={line.variant?.image ?? line.product?.image ?? null} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold">{line.title}</p>
+                      <p className="truncate font-semibold">
+                        {line.problem === 'unavailable' ? (
+                          line.title
+                        ) : (
+                          <Link to={`/productos/${encodeURIComponent(line.item.productId)}`} onClick={close} className="rounded-sm hover:text-cobalt hover:underline">
+                            {line.title}
+                          </Link>
+                        )}
+                      </p>
                       {line.variantText && <p className="truncate text-sm text-ink-soft">{line.variantText}</p>}
-                      <p className="mt-1 flex justify-between gap-2 text-sm">
-                        <span className="text-ink-soft">
-                          {line.item.quantity} × {line.unitPrice === null ? '—' : formatMoney(line.unitPrice, line.currency ?? undefined)}
-                        </span>
+                      <p className="mt-0.5 flex justify-between gap-2 text-sm">
+                        <span className="text-ink-soft">{line.unitPrice === null ? 'sin precio' : `${formatMoney(line.unitPrice, line.currency ?? undefined)} c/u`}</span>
                         <span className="font-semibold tabular-nums">{line.lineAmount === null ? 'no disponible' : formatMoney(line.lineAmount, line.currency ?? undefined)}</span>
                       </p>
+                      <div className="mt-1.5">
+                        <CartLineControls line={line} compact />
+                      </div>
                     </div>
                   </li>
                 ))}

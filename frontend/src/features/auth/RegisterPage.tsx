@@ -12,6 +12,7 @@ import { FormAlert } from '@/components/ui/FormAlert'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 import { newId } from '@/lib/id'
 import { rememberPrimaryAddress } from './addressBook'
+import { ADDRESS_HINT, addressProblem } from './addressRules'
 import { AuthShell } from './AuthShell'
 import { PasswordMatch, PasswordRules } from './PasswordFeedback'
 import { MIN_PASSWORD_LENGTH } from './passwordRules'
@@ -22,7 +23,10 @@ const schema = z
     fullName: z.string().trim().min(3, 'escribe tu nombre completo'),
     email: z.string().trim().min(1, 'escribe tu correo').email('ese correo no parece válido'),
     identityDocument: z.string().trim().min(5, 'el documento debe tener al menos 5 caracteres'),
-    primaryAddress: z.string().trim().min(8, 'escribe una dirección completa, con ciudad'),
+    primaryAddress: z.string().superRefine((value, ctx) => {
+      const problem = addressProblem(value)
+      if (problem) ctx.addIssue({ code: 'custom', message: problem })
+    }),
     password: z.string().min(MIN_PASSWORD_LENGTH, `usa al menos ${MIN_PASSWORD_LENGTH} caracteres`),
     confirm: z.string(),
   })
@@ -76,7 +80,7 @@ export function RegisterPage() {
         </Field>
         <Field
           label="Dirección principal"
-          hint="Con ciudad, por ejemplo: Calle 10 # 5-20, Bogotá. La usaremos como dirección de entrega por defecto."
+          hint={`${ADDRESS_HINT} La usaremos como dirección de entrega por defecto.`}
           error={errors.primaryAddress?.message}
         >
           <Input autoComplete="street-address" {...form.register('primaryAddress')} />

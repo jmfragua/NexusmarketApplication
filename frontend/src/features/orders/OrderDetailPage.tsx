@@ -9,7 +9,7 @@ import { QuantityStepper } from '@/components/ui/QuantityStepper'
 import { EmptyState, ErrorState, LoadingRows, Notice, Skeleton } from '@/components/ui/States'
 import { ProductCover } from '@/features/catalog/ProductCover'
 import { useProductLookup } from '@/features/catalog/useProductLookup'
-import { fallbackTitle, readProduct, variantLabel } from '@/features/catalog/variant'
+import { fallbackTitle, readProduct, variantDetail } from '@/features/catalog/variant'
 import { shortId } from '@/lib/id'
 import { formatMoney } from '@/lib/money'
 import { OrderStatusBadge } from './OrderStatusBadge'
@@ -21,6 +21,7 @@ interface LineView {
   title: string
   variantText: string
   image: string | null
+  href: string | null
 }
 
 function ReturnDialog({ orderId, target, onClose }: { orderId: string; target: LineView | null; onClose: () => void }) {
@@ -83,11 +84,14 @@ export function OrderDetailPage() {
         const raw = lookup.products.get(line.productId)
         const product = raw ? readProduct(raw) : null
         const variant = product?.variants.find((v) => v.id === line.productVariantId) ?? null
+        const title = variant?.name ?? product?.title ?? fallbackTitle(line.productId)
         return {
           line,
-          title: variant?.name ?? product?.title ?? fallbackTitle(line.productId),
-          variantText: variant ? variantLabel(variant) : '',
+          title,
+          variantText: variant ? variantDetail(variant, title) : '',
           image: variant?.image ?? product?.image ?? null,
+          // Only a product still in the catalogue gets a link; a retired one stays plain text.
+          href: raw ? `/productos/${encodeURIComponent(line.productId)}` : null,
         }
       }),
     [order, lookup.products],
@@ -172,7 +176,15 @@ export function OrderDetailPage() {
                     <ProductCover productId={view.line.productId} title={view.title} image={view.image} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold">{view.title}</p>
+                    <p className="font-semibold">
+                      {view.href ? (
+                        <Link to={view.href} className="rounded-sm underline decoration-line-strong decoration-2 underline-offset-[3px] hover:text-cobalt hover:decoration-cobalt">
+                          {view.title}
+                        </Link>
+                      ) : (
+                        view.title
+                      )}
+                    </p>
                     <p className="text-sm text-ink-soft">
                       {view.line.quantity} {view.line.quantity === 1 ? 'unidad' : 'unidades'}
                       {view.variantText && ` · ${view.variantText}`}
@@ -229,7 +241,17 @@ export function OrderDetailPage() {
                 </p>
               </div>
             ) : (
-              <Notice title="aún no se ha emitido">el equipo de NexusMarket la genera después del pago; vuelve a revisar más tarde.</Notice>
+              <Notice
+                title="aún no se ha emitido"
+                icon={
+                  <svg viewBox="0 0 20 20" className="size-4.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                    <circle cx="10" cy="10" r="7.5" />
+                    <path d="M10 5.8V10l2.8 1.8" />
+                  </svg>
+                }
+              >
+                el equipo de NexusMarket la genera después del pago; vuelve a revisar más tarde.
+              </Notice>
             )}
           </div>
         </aside>

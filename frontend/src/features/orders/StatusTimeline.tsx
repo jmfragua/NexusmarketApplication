@@ -21,8 +21,16 @@ const hints: Record<'buyer' | 'staff', Record<OrderStatus, string>> = {
   },
 }
 
+// For a buyer, a paid order is not waiting on the payment any more: "Pagado" is done and what is
+// under way is the dispatch, so the highlight moves there with a hint of its own.
+const underWay: Partial<Record<OrderStatus, { step: OrderStatus; hint: string }>> = {
+  PAID: { step: 'DISPATCHED', hint: 'la bodega está alistando tu pedido para despacharlo' },
+}
+
 export function StatusTimeline({ status, audience = 'buyer' }: { status: OrderStatus; audience?: 'buyer' | 'staff' }) {
-  const reached = steps.indexOf(status)
+  const next = audience === 'buyer' ? underWay[status] : undefined
+  // The step drawn as current: the one under way, or else the status itself.
+  const reached = next ? steps.indexOf(next.step) : steps.indexOf(status)
   return (
     <ol className="grid gap-0 sm:grid-cols-5" aria-label="Estado del pedido">
       {steps.map((step, i) => {
@@ -53,9 +61,9 @@ export function StatusTimeline({ status, audience = 'buyer' }: { status: OrderSt
             <span className="sm:mt-3 sm:block sm:pr-3">
               <span className={cn('block font-semibold', !done && !current && 'text-ink-faint')}>
                 {orderStatusLabel[step]}
-                <span className="sr-only">{done ? ', completado' : current ? ', estado actual' : ', pendiente'}</span>
+                <span className="sr-only">{done ? ', completado' : current ? (next ? ', en curso' : ', estado actual') : ', pendiente'}</span>
               </span>
-              {current && <span className="block text-sm text-ink-soft">{hints[audience][step]}</span>}
+              {current && <span className="block text-sm text-ink-soft">{next ? next.hint : hints[audience][step]}</span>}
             </span>
           </li>
         )

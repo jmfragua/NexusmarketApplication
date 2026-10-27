@@ -115,6 +115,21 @@ export function variantLabel(variant: VariantView): string {
   return variant.name ?? 'Única'
 }
 
+function sameText(a: string, b: string): boolean {
+  const norm = (t: string) => t.normalize('NFD').replace(/\p{Diacritic}/gu, '').replace(/\s+/g, ' ').trim().toLowerCase()
+  return norm(a) === norm(b)
+}
+
+/**
+ * What tells this variant apart, printed under the product name: its options ("M", "Arena"), or
+ * its own name. Empty when that would only repeat the product name ("Mouse inalámbrico Pulso"
+ * under "Mouse inalámbrico Pulso").
+ */
+export function variantDetail(variant: VariantView, productTitle: string): string {
+  const label = variantLabel(variant)
+  return sameText(label, productTitle) ? '' : label
+}
+
 export interface VariantDraft {
   name: string
   price: string

@@ -186,7 +186,8 @@ describe('cart side panel', () => {
     await userEvent.click(await within(header()).findByRole('button', { name: 'Carrito, 3 productos' }))
     const panel = screen.getByRole('dialog', { name: 'tu carrito' })
     expect(await within(panel).findByText('Morral urbano')).toBeInTheDocument()
-    expect(within(panel).getByText(/3 ×/)).toBeInTheDocument()
+    expect(within(panel).getByText('3 artículos en tu carrito')).toBeInTheDocument()
+    expect(within(panel).getByText('Arena')).toBeInTheDocument()
     expect(await within(panel).findByText(/300\.000/, { selector: '.font-display' })).toBeInTheDocument()
     expect(within(panel).getByRole('link', { name: 'Ir a pagar' })).toHaveAttribute('href', '/pagar')
     expect(within(panel).getByRole('button', { name: 'Seguir comprando' })).toBeInTheDocument()
@@ -248,5 +249,72 @@ describe('cart side panel', () => {
     expect(await within(panel).findByText('Producto no disponible')).toBeInTheDocument()
     expect(within(panel).getByText('—', { selector: '.font-display' })).toBeInTheDocument()
     expect(within(panel).getByRole('button', { name: 'Ir a pagar' })).toBeDisabled()
+  })
+})
+
+describe('cart side panel controls', () => {
+  let units = 1
+  let calls: Array<{ key: string; body: unknown }> = []
+  beforeEach(() => {
+    localStorage.clear()
+    units = 1
+    const backend = fakeBackend({
+      'GET /buyer/me/cart': () => ({ status: 200, body: { id: 'c', buyerId: 'u', items: units ? [{ id: 'i', productId: 'p', productVariantId: 'v', quantity: units }] : [] } }),
+      'PATCH /buyer/me/cart/items/i': (init) => {
+        units = (JSON.parse(String(init.body)) as { quantity: number }).quantity
+        return { status: 200, body: { id: 'c', buyerId: 'u', items: [{ id: 'i', productId: 'p', productVariantId: 'v', quantity: units }] } }
+      },
+      'DELETE /buyer/me/cart/items/i': () => {
+        units = 0
+        return { status: 200, body: { id: 'c', buyerId: 'u', items: [] } }
+      },
+      'GET /catalog/products/p': () => ({
+        status: 200,
+        body: { id: 'p', sellerId: 's', productType: 'PHYSICAL', status: 'PUBLISHED', visibleInCatalog: true, variants: [{ id: 'v', attributes: { name: 'Mouse inalámbrico Pulso', price: '59900', currency: 'COP' } }] },
+      }),
+    })
+    calls = backend.calls
+    signIn('BUYER')
+  })
+
+  async function openPanel() {
+    shell('/')
+    await userEvent.click(await within(header()).findByRole('button', { name: /^Carrito, / }))
+    const panel = screen.getByRole('dialog', { name: 'tu carrito' })
+    await within(panel).findByRole('link', { name: 'Mouse inalámbrico Pulso' })
+    return panel
+  }
+
+  it('says how many items, in the singular, and does not repeat the variant name', async () => {
+    const panel = await openPanel()
+    expect(within(panel).getByText('1 artículo en tu carrito')).toBeInTheDocument()
+    expect(within(panel).getAllByText('Mouse inalámbrico Pulso')).toHaveLength(1)
+    expect(within(panel).queryByText(/precios del catálogo/)).toBeNull()
+  })
+
+  it('links each product to its page and closes the panel on the way', async () => {
+    const panel = await openPanel()
+    const link = within(panel).getByRole('link', { name: 'Mouse inalámbrico Pulso' })
+    expect(link).toHaveAttribute('href', '/productos/p')
+    await userEvent.click(link)
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('changes the quantity and removes a line with the cart endpoints', async () => {
+    const panel = await openPanel()
+    await userEvent.click(within(panel).getByRole('button', { name: 'Sumar uno' }))
+    expect(calls.some((c) => c.key === 'PATCH /buyer/me/cart/items/i' && (c.body as { quantity: number }).quantity === 2)).toBe(true)
+    expect(await within(panel).findByText('2 artículos en tu carrito')).toBeInTheDocument()
+    await userEvent.click(within(panel).getByRole('button', { name: 'Quitar Mouse inalámbrico Pulso del carrito' }))
+    expect(calls.some((c) => c.key === 'DELETE /buyer/me/cart/items/i')).toBe(true)
+    expect(await within(panel).findByText('todavía no tienes productos.')).toBeInTheDocument()
+  })
+
+  it('dims the page behind with a soft overlay and no blur, and makes no promise about shipping or taxes', async () => {
+    const panel = await openPanel()
+    const overlay = document.querySelector('.bg-ink\\/35') as HTMLElement
+    expect(overlay).not.toBeNull()
+    expect(overlay.className).not.toContain('blur')
+    expect(panel).not.toHaveTextContent(/impuestos/)
   })
 })

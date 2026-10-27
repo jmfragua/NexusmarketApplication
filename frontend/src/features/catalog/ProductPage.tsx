@@ -10,7 +10,9 @@ import { useSession } from '@/features/auth/session'
 import { useAddToCart } from '@/features/cart/queries'
 import { cn } from '@/lib/cn'
 import { formatMoney } from '@/lib/money'
+import { storeHref } from './catalogFilters'
 import { PriceSticker } from './PriceSticker'
+import { Breadcrumbs, MoreFromBrand, TrustStrip } from './ProductExtras'
 import { productTone, typeChipRing } from './productTone'
 import { ProductCover } from './ProductCover'
 import { useProduct } from './queries'
@@ -91,15 +93,18 @@ export function ProductPage() {
     )
   }
 
+  const digital = product.productType === 'DIGITAL'
+  const currency = selected?.currency ?? view.currency
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 md:py-12">
-      <BackLink />
-      <div className="mt-6 grid gap-10 md:grid-cols-[1.05fr_1fr] md:gap-14">
-        <div className="relative">
+      <Breadcrumbs brand={view.brand} title={view.title} />
+      <div className="mt-6 grid items-start gap-10 md:grid-cols-[1.05fr_1fr] md:gap-14">
+        <div className="relative md:sticky md:top-24">
           <div className="aspect-square overflow-hidden rounded-[1.6rem] bg-card ring-1 ring-line">
             <ProductCover productId={product.id} title={view.title} image={selected?.image ?? view.image} />
           </div>
-          <PriceSticker amount={price} currency={selected?.currency ?? view.currency} type={product.productType} seed={product.id} size="lg" className="absolute right-5 -bottom-5" />
+          <PriceSticker amount={price} currency={currency} type={product.productType} seed={product.id} size="lg" className="absolute right-5 -bottom-5" />
         </div>
 
         <div className="flex flex-col pt-3 md:pt-0">
@@ -107,7 +112,15 @@ export function ProductPage() {
             <Badge tone={productTone(product.productType)} className={typeChipRing[productTone(product.productType)]}>
               {product.productType === 'DIGITAL' ? 'Digital · entrega inmediata al pagar' : 'Físico · se envía desde bodega'}
             </Badge>
-            {view.brand && <span className="text-sm font-semibold text-ink-faint">{view.brand}</span>}
+            {view.brand && (
+              <Link
+                to={storeHref(view.brand)}
+                aria-label={`Ver la tienda ${view.brand}`}
+                className="rounded-sm text-sm font-semibold text-ink-soft underline decoration-line-strong decoration-2 underline-offset-[3px] hover:text-cobalt hover:decoration-cobalt"
+              >
+                {view.brand}
+              </Link>
+            )}
           </div>
           <h1 className="mt-3 text-[clamp(2rem,4.5vw,3.2rem)] font-extrabold">{selected?.name ?? view.title}</h1>
           {(selected?.description ?? view.description) && (
@@ -161,6 +174,12 @@ export function ProductPage() {
           )}
 
           <div className="mt-8 grid gap-4 rounded-[var(--radius-card)] bg-card p-5 ring-1 ring-line">
+            <p className="flex flex-wrap items-baseline justify-between gap-x-3" data-testid="buy-price">
+              <span className="text-sm font-semibold text-ink-soft">Precio{view.variants.length > 1 ? ' de esta opción' : ''}</span>
+              <span className="font-display text-3xl font-extrabold tabular-nums" aria-live="polite">
+                {price === null ? 'por definir' : formatMoney(price, currency)}
+              </span>
+            </p>
             {sample ? (
               <Notice title="este es un producto de ejemplo">no se puede comprar; cuando el backend esté en línea verás productos reales.</Notice>
             ) : !session ? (
@@ -192,8 +211,12 @@ export function ProductPage() {
               </>
             )}
           </div>
+          <div className="mt-4">
+            <TrustStrip digital={digital} />
+          </div>
         </div>
       </div>
+      <MoreFromBrand product={product} brand={view.brand} />
     </div>
   )
 }

@@ -83,4 +83,13 @@ describe('register page', () => {
     expect(panel).toHaveTextContent('muchas tiendas')
     expect(panel.className).toContain('md:sticky')
   })
+
+  it('refuses an address without number and city, explaining it with the example', async () => {
+    open()
+    expect(screen.getByText(/Con número y ciudad, por ejemplo: Calle 10 # 5-20, Bogotá/)).toBeInTheDocument()
+    await userEvent.type(screen.getByLabelText('Dirección principal'), 'sabaneta')
+    await userEvent.click(screen.getByRole('button', { name: 'Crear mi cuenta' }))
+    expect(await screen.findByText(/falta el número de la dirección/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Dirección principal')).toHaveAttribute('aria-invalid', 'true')
+  })
 })

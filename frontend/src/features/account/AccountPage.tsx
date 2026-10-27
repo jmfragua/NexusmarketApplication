@@ -11,6 +11,7 @@ import { describeError } from '@/api/errors'
 import { EmptyState } from '@/components/ui/States'
 import { StorePage } from '@/components/ui/StorePage'
 import { knownAddresses, readAddressBook, rememberBuyer, type AddressBook } from '@/features/auth/addressBook'
+import { ADDRESS_HINT, addressProblem } from '@/features/auth/addressRules'
 import { useSession } from '@/features/auth/session'
 
 export function AccountPage() {
@@ -41,8 +42,9 @@ export function AccountPage() {
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    if (draft.trim().length < 8) {
-      setDraftError('escribe una dirección completa, con ciudad')
+    const problem = addressProblem(draft)
+    if (problem) {
+      setDraftError(problem)
       return
     }
     setDraftError(null)
@@ -79,8 +81,8 @@ export function AccountPage() {
 
         <form onSubmit={submit} className="grid gap-4 rounded-[var(--radius-card)] bg-card p-5 ring-1 ring-line" noValidate>
           <h2 className="text-xl font-bold">agregar una dirección</h2>
-          <Field label="Dirección" error={draftError ?? undefined}>
-            <Input value={draft} onChange={(e) => setDraft(e.target.value)} autoComplete="street-address" placeholder="Avenida 6N # 23-45, Cali" />
+          <Field label="Dirección" hint={ADDRESS_HINT} error={draftError ?? undefined}>
+            <Input value={draft} onChange={(e) => setDraft(e.target.value)} autoComplete="street-address" />
           </Field>
           <Button type="submit" loading={add.isPending} className="justify-self-start">
             Guardar dirección

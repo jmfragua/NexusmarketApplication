@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parsePrice } from '@/lib/money'
-import { buildAttributes, readProduct, readVariant, safeImageSource } from './variant'
+import { buildAttributes, readProduct, readVariant, safeImageSource, variantDetail } from './variant'
 
 describe('parsePrice', () => {
   it.each([
@@ -111,5 +111,20 @@ describe('safeImageSource', () => {
   it('is what the catalogue reads from a variant', () => {
     expect(readVariant({ id: 'v', attributes: { name: 'Morral', image: '/productos/morral.jpg' } }).image).toBe('/productos/morral.jpg')
     expect(readVariant({ id: 'v', attributes: { name: 'Morral', image: '/../etc/passwd' } }).image).toBeNull()
+  })
+})
+
+describe('variantDetail', () => {
+  const variant = (attributes: Record<string, string>) => readVariant({ id: 'v', attributes })
+
+  it('says nothing when the variant name only repeats the product name', () => {
+    expect(variantDetail(variant({ name: 'Mouse inalámbrico Pulso' }), 'Mouse inalámbrico Pulso')).toBe('')
+    expect(variantDetail(variant({ name: 'mouse inalambrico  pulso' }), 'Mouse inalámbrico Pulso')).toBe('')
+  })
+
+  it('keeps what tells the variant apart', () => {
+    expect(variantDetail(variant({ name: 'Camiseta', Talla: 'M' }), 'Camiseta')).toBe('M')
+    expect(variantDetail(variant({ name: 'Morral', Color: 'Arena' }), 'Morral')).toBe('Arena')
+    expect(variantDetail(variant({ name: 'Edición de lujo' }), 'Libro')).toBe('Edición de lujo')
   })
 })

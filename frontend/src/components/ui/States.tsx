@@ -61,16 +61,34 @@ export function ErrorState({ error, onRetry, title }: { error: unknown; onRetry?
   )
 }
 
-export function Notice({ tone = 'amber', title, children }: { tone?: 'amber' | 'cobalt' | 'coral'; title: string; children?: ReactNode }) {
+export function Notice({
+  tone = 'amber',
+  title,
+  children,
+  icon,
+}: {
+  tone?: 'amber' | 'cobalt' | 'coral'
+  title: string
+  children?: ReactNode
+  /** A small decorative icon before the text. */
+  icon?: ReactNode
+}) {
   const styles = {
     amber: 'bg-amber-wash text-amber-ink border-amber-ink/20',
     cobalt: 'bg-cobalt-wash text-cobalt-deep border-cobalt/25',
     coral: 'bg-coral-wash text-coral-deep border-coral/35',
   }[tone]
   return (
-    <div className={cn('rounded-2xl border px-4 py-3 text-sm', styles)} role="note">
-      <p className="font-semibold">{title}</p>
-      {children && <div className="mt-0.5">{children}</div>}
+    <div className={cn('rounded-2xl border px-4 py-3 text-sm', icon ? 'flex gap-2.5' : null, styles)} role="note">
+      {icon && (
+        <span className="mt-0.5 shrink-0" aria-hidden="true">
+          {icon}
+        </span>
+      )}
+      <div>
+        <p className="font-semibold">{title}</p>
+        {children && <div className="mt-0.5">{children}</div>}
+      </div>
     </div>
   )
 }

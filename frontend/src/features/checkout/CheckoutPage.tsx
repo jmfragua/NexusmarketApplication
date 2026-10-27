@@ -9,6 +9,7 @@ import { Field, Input } from '@/components/ui/Field'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { EmptyState, ErrorState, LoadingRows, Notice } from '@/components/ui/States'
 import { knownAddresses, readAddressBook, rememberBuyer } from '@/features/auth/addressBook'
+import { addressProblem, ADDRESS_HINT } from '@/features/auth/addressRules'
 import { useSession } from '@/features/auth/session'
 import { cartKey, useCart, usePricedCart } from '@/features/cart/queries'
 import { ordersKey } from '@/features/orders/queries'
@@ -43,8 +44,10 @@ export function CheckoutPage() {
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     setFailure(null)
-    if (address.length < 8) {
-      setTypedError('escribe una dirección completa, con ciudad')
+    // Only a newly typed address is checked; one already saved is used as it is.
+    const problem = choice === NEW ? addressProblem(typed) : null
+    if (problem) {
+      setTypedError(problem)
       return
     }
     setTypedError(null)
@@ -120,10 +123,10 @@ export function CheckoutPage() {
               <Field
                 className="mt-4"
                 label="Nueva dirección"
-                hint="la guardaremos en tu cuenta como dirección adicional."
+                hint={`${ADDRESS_HINT} La guardaremos en tu cuenta como dirección adicional.`}
                 error={typedError ?? undefined}
               >
-                <Input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="street-address" placeholder="Carrera 7 # 40-12, apto 301, Medellín" />
+                <Input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="street-address" />
               </Field>
             )}
           </fieldset>
